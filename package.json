@@ -1,0 +1,17 @@
+{
+  "name": "zstd-codec",
+  "version": "0.0.1",
+  "description": "Zstandard codec powered by Emscripten",
+  "main": "index.js",
+  "repository": "https://github.com/yoshihitoh/zstd-codec",
+  "author": "yoshihitoh",
+  "license": "MIT",
+  "scripts": {
+    "build-zstd": "",
+    "build": "browserify index.js -o dist/bundle.js -t babelify --presets es2015"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babelify": "^8.0.0"
+  }
+}
