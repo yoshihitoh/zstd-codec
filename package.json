@@ -7,7 +7,7 @@
   "author": "yoshihitoh",
   "license": "MIT",
   "scripts": {
-    "build-zstd": "",
+    "build-binding": "bash docker-build.sh",
     "build": "browserify index.js -o dist/bundle.js -t babelify --presets es2015"
   },
   "devDependencies": {
