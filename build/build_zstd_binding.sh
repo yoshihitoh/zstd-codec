@@ -10,17 +10,6 @@ ARTIFACTS_DIR=${ROOT_DIR}/artifacts
 
 ZSTD_LIB=libzstd.bc
 
-# build Zstandard
-cd ${ZSTD_DIR}
-
-touch lib/libzstd.so
-touch lib/libzstd.a
-rm lib/libzstd.so* lib/libzstd.a
-emmake make clean && \
-    emmake make -j$(python -c "from multiprocessing import cpu_count; print cpu_count()")
-mkdir -p ${LIB_DIR}
-cp lib/libzstd.so ${LIB_DIR}/${ZSTD_LIB}
-
 # build binding
 OPT_LEVEL=3
 USE_CLOSURE=1

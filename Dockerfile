@@ -19,14 +19,21 @@ RUN cd emsdk-portable && \
     ./emsdk activate sdk-${EMCC_SDK_VERSION}-64bit && \
     echo "source $PWD/emsdk_env.sh" >> ~/.bashrc
 
-COPY hello.c /emscripten
+ADD ./zstd /emscripten/zstd
 
-# test emcc, and build libc.bc
-RUN /bin/bash -c "source emsdk-portable/emsdk_env.sh && emcc -o hello.js hello.c && node hello.js" && \
-    rm hello.c hello.js
+WORKDIR /emscripten/zstd
+RUN touch lib/libzstd.so && touch lib/libzstd.a && \
+    rm lib/libzstd.so* lib/libzstd.a
+RUN bash --login -c "emmake make clean && emmake make -j$(nproc)"
+RUN mkdir -p /emscripten/lib && cp lib/libzstd.so /emscripten/lib/libzstd.bc
+
+WORKDIR /emscripten
+ADD ./build/prebuild-libc.cc /emscripten
+RUN bash --login -c \
+    "em++ --bind -std=c++1z -o prebuild-libc.js prebuild-libc.cc -s DEMANGLE_SUPPORT=1 && node prebuild-libc.js && rm prebuild-libc.js"
 
 VOLUME /emscripten/artifacts
 VOLUME /emscripten/build
 VOLUME /emscripten/src
-VOLUME /emscripten/zstd
+WORKDIR /emscripten
 CMD ["/bin/bash", "--login", "build/build_zstd_binding.sh"]
