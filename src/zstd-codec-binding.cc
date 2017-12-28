@@ -143,7 +143,7 @@ bool is_error(int zstd_rc)
 
 int compress_bound(size_t src_size)
 {
-    auto rc = ZSTD_compressBound(src_size);
+    const auto rc = ZSTD_compressBound(src_size);
     if (ZSTD_isError(rc)) {
         return ERR_UNKNOWN;
     }
@@ -158,7 +158,7 @@ int compress_bound(size_t src_size)
 int content_size(val src)
 {
     auto src_bytes = from_js_typed_array<u8>(src);
-    auto rc = ZSTD_getFrameContentSize(&src_bytes[0], src_bytes.size());
+    const auto rc = ZSTD_getFrameContentSize(&src_bytes[0], src_bytes.size());
     if (ZSTD_isError(rc)) {
         return ERR_UNKNOWN;
     }
@@ -173,9 +173,9 @@ int content_size(val src)
 int compress(uintptr_t dest, size_t dest_size, val src, int compression_level)
 {
     auto src_bytes = from_js_typed_array<u8>(src);
-    auto rc = ZSTD_compress(reinterpret_cast<void*>(dest), dest_size,
-                            &src_bytes[0], src_bytes.size(),
-                            compression_level);
+    const auto rc = ZSTD_compress(reinterpret_cast<void*>(dest), dest_size,
+                                  &src_bytes[0], src_bytes.size(),
+                                  compression_level);
     if (ZSTD_isError(rc)) {
         return ERR_UNKNOWN;
     }
@@ -223,8 +223,8 @@ bool compress_stream(val read_callback, val write_callback, int compression_leve
 int decompress(uintptr_t dest, size_t dest_size, val src)
 {
     auto src_bytes = from_js_typed_array<u8>(src);
-    auto rc = ZSTD_decompress(reinterpret_cast<void*>(dest), dest_size,
-                              &src_bytes[0], src_bytes.size());
+    const auto rc = ZSTD_decompress(reinterpret_cast<void*>(dest), dest_size,
+                                    &src_bytes[0], src_bytes.size());
     if (ZSTD_isError(rc)) {
         return ERR_UNKNOWN;
     }
