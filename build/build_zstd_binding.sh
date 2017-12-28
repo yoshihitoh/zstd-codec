@@ -17,7 +17,7 @@ EMCC_FLAGS="--bind -O${OPT_LEVEL} -std=c++1z --memory-init-file 0 -I${ZSTD_DIR}/
 
 cd ${SRC_DIR}
 em++ ${EMCC_FLAGS} \
-    -o ${ARTIFACTS_DIR}/zstd.js \
+    -o ${ARTIFACTS_DIR}/zstd-binding.js \
     ${LIB_DIR}/${ZSTD_LIB} *.cc \
     -s DEMANGLE_SUPPORT=1 \
     -s 'EXTRA_EXPORTED_RUNTIME_METHODS=["FS"]' \
