@@ -1,2 +1,2 @@
-var ZstdCodec = require('./lib/zstd-codec.js').ZstdCodec;
+const ZstdCodec = require('./lib/zstd-codec.js').ZstdCodec;
 module.exports = ZstdCodec;
