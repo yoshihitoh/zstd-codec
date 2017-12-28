@@ -8,10 +8,16 @@
   "license": "MIT",
   "scripts": {
     "build-binding": "bash docker-build.sh",
-    "build": "browserify index.js -o dist/bundle.js -t babelify --presets es2015"
+    "build": "browserify index.js -o dist/bundle.js -t babelify --presets es2015",
+    "test": "jest",
+    "test-debug": "node --inspect-brk node_modules/.bin/jest --runInBand"
   },
   "devDependencies": {
     "babel-core": "^6.26.0",
-    "babelify": "^8.0.0"
+    "babel-jest": "^22.0.4",
+    "babelify": "^8.0.0",
+    "jest": "^22.0.4",
+    "regenerator-runtime": "^0.11.1",
+    "text-encoding": "^0.6.4"
   }
 }
