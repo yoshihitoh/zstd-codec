@@ -4,16 +4,28 @@ newoption {
 }
 
 
-premake.override(premake.modules.gmake2.cpp, "linkCmd", function(base, cfg, toolset)
-    local is_emscripten = _OPTIONS["with-emscripten"]
-    local is_staticlib = cfg.kind == premake.STATICLIB
-    local is_non_universal = not(cfg.architecture == premake.UNIVERSAL)
-    if is_emscripten and is_staticlib and is_non_universal then
-        premake.outln('LINKCMD = $(AR) rcs "$@" $(OBJECTS)')
+if premake.modules.gmake2 then
+    premake.override(premake.modules.gmake2.cpp, "linkCmd", function(base, cfg, toolset)
+        local is_emscripten = _OPTIONS["with-emscripten"]
+        local is_staticlib = cfg.kind == premake.STATICLIB
+        local is_non_universal = not(cfg.architecture == premake.UNIVERSAL)
+        if is_emscripten and is_staticlib and is_non_universal then
+            premake.outln('LINKCMD = $(AR) rcs "$@" $(OBJECTS)')
+        else
+            base(cfg, toolset)
+        end
+    end)
+end
+
+
+function zstd_library_name()
+    if os.istarget("macosx") then
+        return 'libzstd.dylib'
     else
-        base(cfg, toolset)
+        return 'libzstd.so'
     end
-end)
+end
+
 
 workspace "zstd-codec"
     configurations {"Debug", "Release"}
@@ -73,7 +85,7 @@ project "zstd-codec"
     filter "options:with-emscripten"
         kind "StaticLib"
         prebuildcommands {
-            "{COPY} %{wks.location}/../zstd/lib/libzstd.dylib %{wks.location}/../zstd/lib/libzstd.bc",
+            string.format("{COPY} %%{wks.location}/../zstd/lib/%s %%{wks.location}/../zstd/lib/libzstd.bc", zstd_library_name()),
         }
 
     filter "options:not with-emscripten"
