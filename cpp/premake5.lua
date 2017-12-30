@@ -49,6 +49,8 @@ externalproject "zstd"
 project "zstd-codec"
     language "C++"
 
+    dependson "zstd"
+
     includedirs {
         "zstd/lib",
     }
