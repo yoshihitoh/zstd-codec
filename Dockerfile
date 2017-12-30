@@ -28,12 +28,12 @@ RUN bash --login -c "emmake make clean && emmake make -j$(nproc)"
 RUN mkdir -p /emscripten/lib && cp lib/libzstd.so /emscripten/lib/libzstd.bc
 
 WORKDIR /emscripten
-ADD ./build/prebuild-libc.cc /emscripten
-RUN bash --login -c \
+ADD ./build/emscripten/prebuild-libc.cc /emscripten
+RUN ls -lah /emscripten && bash --login -c \
     "em++ --bind -std=c++1z -o prebuild-libc.js prebuild-libc.cc -s DEMANGLE_SUPPORT=1 && node prebuild-libc.js && rm prebuild-libc.js"
 
 VOLUME /emscripten/artifacts
 VOLUME /emscripten/build
 VOLUME /emscripten/src
 WORKDIR /emscripten
-CMD ["/bin/bash", "--login", "build/build_zstd_binding.sh"]
+CMD ["/bin/bash"]
