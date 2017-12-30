@@ -24,7 +24,7 @@ workspace "zstd-codec"
 
     filter "configurations:Release"
         defines { "NDEBUG" }
-        optimize "On"
+        optimize "Full"
 
     filter "action:gmake*"
         buildoptions {"-std=c++1z"}
@@ -135,6 +135,11 @@ project "zstd-codec-binding"
             "-s DEMANGLE_SUPPORT=1",
             "-s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\"]'",
             "-s MODULARIZE=1",
+        }
+
+    filter {"options:with-emscripten", "configurations:Release"}
+        linkoptions {
+            "-O2",
             "-s USE_CLOSURE_COMPILER=1",
         }
 
