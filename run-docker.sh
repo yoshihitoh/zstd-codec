@@ -12,4 +12,4 @@ docker container run \
     --name zstd-emscripten \
     -v ${CPP_DIR}:/emscripten/src \
     yoshihitoh/zstd-emscripten \
-    /bin/bash --login /emscripten/src/emscripten-build-release.sh
+    /bin/bash --login /emscripten/src/build-emscripten-release.sh
