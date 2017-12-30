@@ -64,10 +64,6 @@ project "zstd-codec"
         "zstd/lib",
     }
 
-    links {
-        "zstd"
-    }
-
     removefiles {
         "src/binding/**"
     }
@@ -80,6 +76,10 @@ project "zstd-codec"
 
     filter "options:not with-emscripten"
         kind "SharedLib"
+
+        links {
+            "zstd"
+        }
 
 
 project "test-zstd-codec"
