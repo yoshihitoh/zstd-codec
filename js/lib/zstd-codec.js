@@ -165,9 +165,9 @@ class Streaming {
         });
     }
 
-    decompress(compressed_bytes, content_size_hint) {
+    decompress(compressed_bytes, size_hint) {
         return withBindingInstance(new zstd.ZstdDecompressStreamBinding(), (stream) => {
-            const initial_size = content_size_hint || this._estimateContentSize(compressed_bytes);
+            const initial_size = size_hint || this._estimateContentSize(compressed_bytes);
             const sink = new ArrayBufferSink(initial_size);
             const callback = (decompressed) => {
                 sink.concat(decompressed);
