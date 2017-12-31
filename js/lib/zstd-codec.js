@@ -6,7 +6,7 @@ class ZstdCodec {
         this.codec = new zstd.ZstdCodec();
     }
 
-    with_cpp_vector(callback) {
+    _withCppVector(callback) {
         const vector = new zstd.VectorU8();
         try {
             return callback(vector);
@@ -16,14 +16,13 @@ class ZstdCodec {
         }
     }
 
-    compress_bound(content_bytes) {
+    compressBound(content_bytes) {
         const rc = this.codec.compressBound(content_bytes.length);
         return rc >= 0 ? rc : null;
     }
 
-    content_size(compressed_bytes) {
-        const self = this;
-        return this.with_cpp_vector((src) => {
+    contentSize(compressed_bytes) {
+        return this._withCppVector((src) => {
             zstd.cloneToVector(src, compressed_bytes);
 
             const rc = this.codec.contentSize(src);
@@ -34,18 +33,18 @@ class ZstdCodec {
     compress(content_bytes, compression_level) {
         // use basic-api `compress`, to embed `frameContentSize`.
 
-        const compress_bound = this.compress_bound(content_bytes);
-        if (!compress_bound) return null;
+        const compressBound = this.compressBound(content_bytes);
+        if (!compressBound) return null;
 
         const DEFAULT_COMPRESSION_LEVEL = 3;
         compression_level = compression_level || DEFAULT_COMPRESSION_LEVEL;
 
         const self = this;
         const codec = self.codec;
-        return self.with_cpp_vector((src) => {
-            return self.with_cpp_vector((dest) => {
+        return self._withCppVector((src) => {
+            return self._withCppVector((dest) => {
                 zstd.cloneToVector(src, content_bytes);
-                dest.resize(compress_bound, 0);
+                dest.resize(compressBound, 0);
 
                 var rc = codec.compress(dest, src, compression_level);
                 if (rc < 0) return null;    // `rc` is compressed size
@@ -61,17 +60,17 @@ class ZstdCodec {
 
         const self = this;
         const codec = self.codec;
-        return self.with_cpp_vector((src) => {
-            return self.with_cpp_vector((dest) => {
+        return self._withCppVector((src) => {
+            return self._withCppVector((dest) => {
                 zstd.cloneToVector(src, compressed_bytes);
 
-                const content_size = this.content_size(compressed_bytes);
-                if (!content_size) return null;
+                const contentSize = this.contentSize(compressed_bytes);
+                if (!contentSize) return null;
 
-                dest.resize(content_size, 0);
+                dest.resize(contentSize, 0);
 
                 var rc = codec.decompress(dest, src);
-                if (rc < 0 || rc != content_size) return null;    // `rc` is compressed size
+                if (rc < 0 || rc != contentSize) return null;    // `rc` is compressed size
 
                 return zstd.cloneAsTypedArray(dest);
             });

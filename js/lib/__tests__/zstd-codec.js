@@ -6,20 +6,20 @@ const TextDecoder = textEncoding.TextDecoder;
 const ArrayBufferHelper = require('../helpers.js').ArrayBufferHelper;
 const ZstdCodec = require('../zstd-codec.js').ZstdCodec;
 
-const fixture_path = (name) => {
+const fixturePath = (name) => {
     return path.join(__dirname, 'fixtures', name);
 }
 
-const fixture_binary = (name) => {
-    const data = fs.readFileSync(fixture_path(name));
+const fixtureBinary = (name) => {
+    const data = fs.readFileSync(fixturePath(name));
     return new Uint8Array(data);
 };
 
-const fixture_text = (name) => {
-    return fs.readFileSync(fixture_path(name), 'utf-8');
+const fixtureText = (name) => {
+    return fs.readFileSync(fixturePath(name), 'utf-8');
 };
 
-const tmp_path = (name) => {
+const tempPath = (name) => {
     return path.join(__dirname, 'tmp', name);
 }
 
@@ -38,20 +38,20 @@ describe('ZstdCodec', () => {
         }
     };
 
-    describe('compress_bound()', () => {
+    describe('compressBound()', () => {
         it('should retrieve compressed size in worst case', () => {
-            expect(codec.compress_bound(new Uint8Array())).toBeGreaterThan(0);
+            expect(codec.compressBound(new Uint8Array())).toBeGreaterThan(0);
 
-            const lorem_bytes = fixture_binary('lorem.txt');
-            expect(codec.compress_bound(lorem_bytes)).toBeGreaterThan(0);
+            const lorem_bytes = fixtureBinary('lorem.txt');
+            expect(codec.compressBound(lorem_bytes)).toBeGreaterThan(0);
         });
     });
 
-    describe('content_size()', () => {
+    describe('contentSize()', () => {
         it('should retrieve content size from zstd compressed files', () => {
-            expect(codec.content_size(fixture_binary('lorem.txt.zst'))).toBe(446);
-            expect(codec.content_size(fixture_binary('dance_yorokobi_mai_man.bmp.zst'))).toBe(1920054);
-            expect(codec.content_size(fixture_binary('dance_yorokobi_mai_woman.bmp.zst'))).toBe(1920054);
+            expect(codec.contentSize(fixtureBinary('lorem.txt.zst'))).toBe(446);
+            expect(codec.contentSize(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'))).toBe(1920054);
+            expect(codec.contentSize(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'))).toBe(1920054);
         });
     });
 
@@ -67,14 +67,14 @@ describe('ZstdCodec', () => {
 
     describe('decompress()', () => {
         it('should decompress data', () => {
-            const lorem_bytes = codec.decompress(fixture_binary('lorem.txt.zst'));
-            expect(lorem_bytes).toEqual(fixture_binary('lorem.txt'));
+            const lorem_bytes = codec.decompress(fixtureBinary('lorem.txt.zst'));
+            expect(lorem_bytes).toEqual(fixtureBinary('lorem.txt'));
             // NOTE: use .toString() to avoid RangeError.
-            const man_bytes = codec.decompress(fixture_binary('dance_yorokobi_mai_man.bmp.zst'));
-            expect(man_bytes.toString()).toEqual(fixture_binary('dance_yorokobi_mai_man.bmp').toString());
+            const man_bytes = codec.decompress(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'));
+            expect(man_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_man.bmp').toString());
 
-            const woman_bytes = codec.decompress(fixture_binary('dance_yorokobi_mai_woman.bmp.zst'));
-            expect(woman_bytes.toString()).toEqual(fixture_binary('dance_yorokobi_mai_woman.bmp').toString());
+            const woman_bytes = codec.decompress(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'));
+            expect(woman_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_woman.bmp').toString());
         });
     });
 
@@ -82,7 +82,7 @@ describe('ZstdCodec', () => {
     describe('compress_stream()', () => {
         it('should compress data', () => {
             const lorem_bytes = new TextEncoder('utf-8').encode(LOREM_TEXT);
-            const buffer = new ArrayBuffer(codec.compress_bound(lorem_bytes));
+            const buffer = new ArrayBuffer(codec.compressBound(lorem_bytes));
             let src_offset = 0;
             let dest_offset = 0;
             const success = codec.compress_stream((read_size) => {
@@ -102,7 +102,7 @@ describe('ZstdCodec', () => {
 
     describe('decompress_stream()', () => {
         it('should decompress data', () => {
-            let src_bytes = fixture_binary('dance_yorokobi_mai_man.bmp.zst');
+            let src_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp.zst');
             let src_offset = 0;
             let dest_buffer = new ArrayBuffer(512 * 1024);
             let dest_offset = 0;
@@ -118,9 +118,9 @@ describe('ZstdCodec', () => {
             });
 
             const content_bytes = new Uint8Array(dest_buffer, 0, dest_offset);
-            fs.writeFileSync(tmp_path('dance_yorokobi_mai_man.bmp'), content_bytes);
+            fs.writeFileSync(tempPath('dance_yorokobi_mai_man.bmp'), content_bytes);
 
-            const man_bytes = fixture_binary('dance_yorokobi_mai_man.bmp');
+            const man_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp');
 
             expect(success).toBeTruthy();
             expect(content_bytes.length).toEqual(man_bytes.length);
