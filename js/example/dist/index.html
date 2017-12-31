@@ -1,0 +1,37 @@
+<html>
+    <head>
+        <script src="bundle.js"></script>
+        <script type="text/javascript">
+function uint8ArrayToBase64( bytes ) {
+    var binary = '';
+    var len = bytes.byteLength;
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+    return window.btoa( binary );
+}
+
+var fileName = '/dance_yorokobi_mai_woman.bmp.zst';
+var xhr = new XMLHttpRequest();
+xhr.responseType = 'arraybuffer';
+xhr.open('GET', fileName, true);
+xhr.onload = function(e) {
+    var data = new Uint8Array(this.response);
+    var simple = new ZstdCodec.Simple();
+    var bmp_bytes = simple.decompress(data);
+    var bmp_b64 = 'data:image/bmp;base64,' + uint8ArrayToBase64(bmp_bytes);
+
+    var image = document.createElement('img');
+    image.src = bmp_b64;
+
+    var container = document.getElementById('container');
+    container.appendChild(image);
+};
+xhr.send();
+        </script>
+    </head>
+    <body>
+        <h1>Sample Application</h1>
+        <div id="container"></div>
+    </body>
+</html>
