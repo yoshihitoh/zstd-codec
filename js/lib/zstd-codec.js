@@ -55,12 +55,12 @@ class ArrayBufferSink {
 
     array() {
         // NOTE: clone buffer to shrink to fit
-        const buffer = ArrayBufferHelper.transfer_array_buffer(this._buffer, this._offset);
+        const buffer = ArrayBufferHelper.transfer(this._buffer, this._offset);
         return new Uint8Array(buffer);
     }
 
     _grow(new_size) {
-        this._buffer = ArrayBufferHelper.transfer_array_buffer(this._buffer, new_size);
+        this._buffer = ArrayBufferHelper.transfer(this._buffer, new_size);
         this._array = new Uint8Array(this._buffer);
     }
 }
