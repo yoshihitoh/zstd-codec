@@ -6,8 +6,7 @@
   "author": "Yoshihito Hirakawa",
   "license": "MIT",
   "scripts": {
-    "build": "browserify index.js -o dist/bundle.js -t babelify --presets es2015",
-    "start": "cd dist && python -m SimpleHTTPServer 8084"
+    "build": "browserify index.js -o dist/bundle.js -t babelify --presets es2015"
   },
   "dependencies": {
     "zstd-codec": "^0.0.2"
