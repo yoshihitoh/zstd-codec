@@ -1,40 +1,116 @@
 # zstd-codec
-Zstandard codec for Node.js and Web, powered by Emscripten
+[Zstandard](http://facebook.github.io/zstd/) codec for Node.js and Web, powered by Emscripten.
+
+## Languages
+- [English](README.md)
+
+## Description
+- TODO: add description
 
 ## Installation
-- TODO: write installation sptes here
+- TODO: add installation steps
+
 
 ## Usage
+- TODO: add steps to require zstd-codec
 
-- TODO: Add require ZstdCodec
+### Simple API
+- Using Zstandard's Simple API
+    - `ZSTD_compress` for compress
+    - `ZSTD_decompress` for decompress
+- Store whole input/output bytes into Emscripten's heap
+    - Available Emscripten's heap size is 16MiB
+    - (input.length + output.length) should be less than 12MiB
+- Use Simple API for small data
+- Use Streaming API for large data
 
-### Basics
-#### compress(content_bytes: Uint8Array, compression_level: number) -> Uint8Array
+```javascript
+// instantiate simple api codec
+const simple = new ZstdCodec.Simple();
+```
+
+#### compress(content_bytes, compression_level)
+- `content_bytes`:  data to compress, must be `Uint8Array`.
+- `compression_level`: (optional) compression level, default value is `3`
+
 ```javascript
 // prepare data to compress
-const text = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, ...`;
-const content_bytes = new Uint8Array(new TextEncoder("utf-8").encode(text));
+const data = ...;
 
 // compress
-const compressed_bytes = codec.compress(content_bytes, 5);  // default level is 3
+const level = 5;
+const compressed = simple.compress(data, level);
+
+// handle compressed data
+do_something(compressed);
 ```
 
-NOTE: (content_bytes.length + compressed_bytes.length) should be less than 10MiB.
+#### decompress(compressed_bytes)
+- `compressed_bytes`: data to decompress, must be `Uint8Array`.
 
-#### decompress(compressed_bytes: Uint8Array) -> Uint8Array
 ```javascript
-// prepare data to decompress
-const compressed_bytes = ... // Uint8Array data to decompress
+// prepare compressed data
+const compressed = ...;
 
 // decompress
-const content_bytes = codec.decompress(compressed_bytes);
+const data = simple.decompress(compressed);
+
+// handle decompressed data
+do_something(data);
 ```
 
-NOTE: (content_bytes.length + compressed_bytes.length) should be less than 10MiB.
+### Streaming APIs
+- Using Zstandard's Streaming API
+    - `ZSTD_xxxxCStream` APIs for compress
+    - `ZSTD_xxxxDStream` APIs for decompress
+- Store partial input/output bytes into Emscripten's heap
 
-### Streaming mode
-NOTE: streaming api is experimental. Current implementation is not useful.
+```javascript
+const streaming = new ZstdCodec.Streaming();
+```
+
+#### compress(content_bytes, compression_level)
+- `content_bytes`: data to compress, must be 'Uint8Array'
+- `compression_level`: (optional) compression level, default value is `3`
+
+```javascript
+const compressed = streaming.compress(data); // use default compression_level 3
+```
+
+#### compressChunks(chunks, size_hint, compression_level)
+- `chunks`: data chunks to compress, must be `Iterable` of `Uint8Array`
+- `size_hint`: (optional) size hint to store compressed data (to improve performance)
+- `compression_level`: (optional) compression level, default value is `3`
+
+```javascript
+const chunks = [dataPart1, dataPart2, dataPart3, ...];
+const size_hint = chunks.map((ar) => ar.length).reduce((p, c) => p + c);
+const compressed = streaming.compressChunks(chunks, size_hint); // use default compression_level 3
+```
+
+#### decompress(compressed_bytes, size_hint)
+- `compressed_bytes`: data to decompress, must be `Uint8Array`.
+- `size_hint`: (optional) size hint to store decompressed data (to improve performance)
+
+```javascript
+const data = streaming.decompress(data); // can omit size_hint
+```
+
+#### decompressChunks(chunks, size_hint)
+- `chunks`: data chunks to compress, must be `Iterable` of `Uint8Array`
+- `size_hint`: (optional) size hint to store compressed data (to improve performance)
+
+```javascript
+const chunks = [dataPart1, dataPart2, dataPart3, ...];
+const size_hint = 2 * 1024 * 1024; // 2MiB
+const data = streaming.decompressChunks(chunks, size_hint); // use default compression_level 3
+```
+
 
 ## TODO
 - add CI
 - improve APIs
+- write  this document
+- add how to build zstd with Emsxcripten
+- add how to test
+- publish on NPM
