@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "zstd-stream.h"
 
 //
@@ -43,17 +44,28 @@ bool ZstdCompressStream::Transform(const Vec<u8>& chunk, StreamCallback callback
 {
     if (!HasStream()) return false;
 
-    // append src bytes
-    std::copy(std::begin(chunk),
-              std::end(chunk), std::back_inserter(src_bytes_));
+    auto chunk_offset = 0u;
+    while (chunk_offset < chunk.size()) {
+        const auto src_available = src_bytes_.capacity() - src_bytes_.size();
+        const auto chunk_remains = chunk.size() - chunk_offset;
+        const auto copy_size = std::min(src_available, chunk_remains);
 
-    // not enough
-    if (src_bytes_.size() < next_read_size_) {
-        return true;
+        const auto copy_begin = std::begin(chunk) + chunk_offset;
+        const auto copy_end = copy_begin + copy_size;
+
+        chunk_offset += copy_size;
+
+        // append src bytes
+        std::copy(copy_begin, copy_end, std::back_inserter(src_bytes_));
+
+        // compress if enough bytes ready
+        if (src_bytes_.size() >= next_read_size_ || src_available == 0u) {
+            const auto success = Compress(callback);
+            if (!success) return false;
+        }
     }
 
-    // enough
-    return Compress(callback);
+    return true;
 }
 
 
@@ -155,17 +167,28 @@ bool ZstdDecompressStream::Transform(const Vec<u8>& chunk, StreamCallback callba
 {
     if (!HasStream()) return false;
 
-    // append src bytes
-    std::copy(std::begin(chunk),
-              std::end(chunk), std::back_inserter(src_bytes_));
+    auto chunk_offset = 0u;
+    while (chunk_offset < chunk.size()) {
+        const auto src_available = src_bytes_.capacity() - src_bytes_.size();
+        const auto chunk_remains = chunk.size() - chunk_offset;
+        const auto copy_size = std::min(src_available, chunk_remains);
 
-    // not enough
-    if (src_bytes_.size() < next_read_size_) {
-        return true;
+        const auto copy_begin = std::begin(chunk) + chunk_offset;
+        const auto copy_end = copy_begin + copy_size;
+
+        chunk_offset += copy_size;
+
+        // append src bytes
+        std::copy(copy_begin, copy_end, std::back_inserter(src_bytes_));
+
+        // compress if enough bytes ready
+        if (src_bytes_.size() >= next_read_size_ || src_available == 0u) {
+            const auto success = Decompress(callback);
+            if (!success) return false;
+        }
     }
 
-    // enough
-    return Decompress(callback);
+    return true;
 }
 
 
