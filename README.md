@@ -103,7 +103,7 @@ const data = streaming.decompress(data); // can omit size_hint
 ```javascript
 const chunks = [dataPart1, dataPart2, dataPart3, ...];
 const size_hint = 2 * 1024 * 1024; // 2MiB
-const data = streaming.decompressChunks(chunks, size_hint); // use default compression_level 3
+const data = streaming.decompressChunks(chunks, size_hint);
 ```
 
 
