@@ -1,6 +1,8 @@
 
 # NOTE: based on Node.gitignore (https://github.com/github/gitignore/blob/master/Node.gitignore)
 dist/
+!example/dist/
+example/dist/bundle.js
 
 # Logs
 logs
