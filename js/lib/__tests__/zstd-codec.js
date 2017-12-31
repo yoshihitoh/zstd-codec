@@ -25,55 +25,51 @@ const tempPath = (name) => {
 
 const LOREM_TEXT = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.';
 
-describe('ZstdCodec', () => {
-    const codec = new ZstdCodec();
 
-    const with_file = (path, flag, callback) => {
-        const fp = fs.openSync(path, flag);
-        try {
-            callback(fp);
-        }
-        finally {
-            fs.closeSync(fp);
-        }
-    };
+describe('ZstdCodec.Generic', () => {
+    const generic = new ZstdCodec.Generic();
 
     describe('compressBound()', () => {
         it('should retrieve compressed size in worst case', () => {
-            expect(codec.compressBound(new Uint8Array())).toBeGreaterThan(0);
+            expect(generic.compressBound(new Uint8Array())).toBeGreaterThan(0);
 
             const lorem_bytes = fixtureBinary('lorem.txt');
-            expect(codec.compressBound(lorem_bytes)).toBeGreaterThan(0);
+            expect(generic.compressBound(lorem_bytes)).toBeGreaterThan(0);
         });
     });
 
     describe('contentSize()', () => {
         it('should retrieve content size from zstd compressed files', () => {
-            expect(codec.contentSize(fixtureBinary('lorem.txt.zst'))).toBe(446);
-            expect(codec.contentSize(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'))).toBe(1920054);
-            expect(codec.contentSize(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'))).toBe(1920054);
+            expect(generic.contentSize(fixtureBinary('lorem.txt.zst'))).toBe(446);
+            expect(generic.contentSize(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'))).toBe(1920054);
+            expect(generic.contentSize(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'))).toBe(1920054);
         });
     });
+});
+
+
+describe('ZstdCodec.Simple', () => {
+    const simple = new ZstdCodec.Simple();
 
     describe('compress()', () => {
         it('should compress data', () => {
             const lorem_bytes = new TextEncoder('utf-8').encode(LOREM_TEXT);
-            const compressed_bytes = codec.compress(lorem_bytes);
+            const compressed_bytes = simple.compress(lorem_bytes);
 
             expect(compressed_bytes.length).toBeLessThan(lorem_bytes.length);
-            expect(codec.decompress(compressed_bytes)).toEqual(lorem_bytes);
+            expect(simple.decompress(compressed_bytes)).toEqual(lorem_bytes);
         });
     });
 
     describe('decompress()', () => {
         it('should decompress data', () => {
-            const lorem_bytes = codec.decompress(fixtureBinary('lorem.txt.zst'));
+            const lorem_bytes = simple.decompress(fixtureBinary('lorem.txt.zst'));
             expect(lorem_bytes).toEqual(fixtureBinary('lorem.txt'));
             // NOTE: use .toString() to avoid RangeError.
-            const man_bytes = codec.decompress(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'));
+            const man_bytes = simple.decompress(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'));
             expect(man_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_man.bmp').toString());
 
-            const woman_bytes = codec.decompress(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'));
+            const woman_bytes = simple.decompress(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'));
             expect(woman_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_woman.bmp').toString());
         });
     });

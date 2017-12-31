@@ -1,48 +1,57 @@
 const ArrayBufferHelper = require('./helpers.js').ArrayBufferHelper;
 const zstd = require('./zstd-codec-binding.js')();
+const codec = new zstd.ZstdCodec();
 
-class ZstdCodec {
-    constructor() {
-        this.codec = new zstd.ZstdCodec();
+
+const withCppVector = (callback) => {
+    const vector = new zstd.VectorU8();
+    try {
+        return callback(vector);
     }
-
-    _withCppVector(callback) {
-        const vector = new zstd.VectorU8();
-        try {
-            return callback(vector);
-        }
-        finally {
-            vector.delete();
-        }
+    finally {
+        vector.delete();
     }
+};
 
+
+const compressBoundImpl = (content_size) => {
+    const rc = codec.compressBound(content_size);
+    return rc >= 0 ? rc : null;
+};
+
+
+const contentSizeImpl = (src_vec) => {
+    const rc = codec.contentSize(src_vec);
+    return rc >= 0 ? rc : null;
+}
+
+
+class Generic {
     compressBound(content_bytes) {
-        const rc = this.codec.compressBound(content_bytes.length);
-        return rc >= 0 ? rc : null;
+        return compressBoundImpl(content_bytes.length);
     }
 
     contentSize(compressed_bytes) {
-        return this._withCppVector((src) => {
+        return withCppVector((src) => {
             zstd.cloneToVector(src, compressed_bytes);
-
-            const rc = this.codec.contentSize(src);
-            return rc >= 0 ? rc : null;
+            return contentSizeImpl(src);
         });
     }
+}
 
+
+class Simple {
     compress(content_bytes, compression_level) {
         // use basic-api `compress`, to embed `frameContentSize`.
 
-        const compressBound = this.compressBound(content_bytes);
+        const compressBound = compressBoundImpl(content_bytes.length);
         if (!compressBound) return null;
 
         const DEFAULT_COMPRESSION_LEVEL = 3;
         compression_level = compression_level || DEFAULT_COMPRESSION_LEVEL;
 
-        const self = this;
-        const codec = self.codec;
-        return self._withCppVector((src) => {
-            return self._withCppVector((dest) => {
+        return withCppVector((src) => {
+            return withCppVector((dest) => {
                 zstd.cloneToVector(src, content_bytes);
                 dest.resize(compressBound, 0);
 
@@ -57,14 +66,11 @@ class ZstdCodec {
 
     decompress(compressed_bytes) {
         // use streaming-api, to support data without `frameContentSize`.
-
-        const self = this;
-        const codec = self.codec;
-        return self._withCppVector((src) => {
-            return self._withCppVector((dest) => {
+        return withCppVector((src) => {
+            return withCppVector((dest) => {
                 zstd.cloneToVector(src, compressed_bytes);
 
-                const contentSize = this.contentSize(compressed_bytes);
+                const contentSize = contentSizeImpl(src);
                 if (!contentSize) return null;
 
                 dest.resize(contentSize, 0);
@@ -78,4 +84,7 @@ class ZstdCodec {
     }
 }
 
-exports.ZstdCodec = ZstdCodec;
+
+exports.ZstdCodec = {};
+exports.ZstdCodec.Generic = Generic;
+exports.ZstdCodec.Simple = Simple;
