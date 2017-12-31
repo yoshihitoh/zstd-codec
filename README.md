@@ -108,9 +108,11 @@ const data = streaming.decompressChunks(chunks, size_hint); // use default compr
 
 
 ## TODO
-- add CI
+- add CI (Travis CI or Circle CI?)
 - improve APIs
 - write  this document
 - add how to build zstd with Emsxcripten
 - add how to test
 - publish on NPM
+- performance test
+- add more tests
