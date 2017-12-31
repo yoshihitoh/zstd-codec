@@ -7,15 +7,6 @@
 using namespace emscripten;
 
 
-// NOTE: dummy implementation, to include FS module.
-void dummy()
-{
-    FILE* fp = fopen("dummy", "rb");
-    fclose(fp);
-    printf("dummy");
-}
-
-
 // NOTE: ref: https://github.com/kripken/emscripten/issues/5519
 template<typename T>
 static size_t copy_to_vector(Vec<T>& dest, const val& src)
@@ -65,6 +56,56 @@ static void write_to_js_callback(val callback, const Vec<u8>& buffer, size_t wri
     callback(val(typed_memory_view(write_size, &buffer[0])));
 }
 
+
+// ---- binding helper functions ----------------------------------------------
+
+// NOTE: dummy implementation, to include FS module.
+void Dummy()
+{
+    FILE* fp = fopen("dummy", "rb");
+    fclose(fp);
+    printf("dummy");
+}
+
+
+void CloneToVector(Vec<u8>& dest, val src)
+{
+    const auto length = src["length"].as<unsigned int>();
+    dest.resize(length);
+
+    val memory = val::module_property("buffer");
+    val memory_view = src["constructor"].new_(memory, reinterpret_cast<uintptr_t>(dest.data()), length);
+
+    memory_view.call<void>("set", src);
+}
+
+
+val CloneAsTypedArray(const Vec<u8>& src)
+{
+    val heapu8 = val::module_property("HEAPU8");
+    val src_buffer = val::module_property("buffer");
+    val src_view = heapu8["constructor"].new_(src_buffer, reinterpret_cast<uintptr_t>(&src[0]), src.size());
+
+    val dest_buffer = src_buffer["constructor"].new_(src.size());
+    val dest_view = heapu8["constructor"].new_(dest_buffer);
+
+    dest_view.call<void>("set", src_view);
+    return dest_view;
+}
+
+
+val ToTypedArrayView(const Vec<u8>& src)
+{
+    val memory = val::module_property("buffer");
+    val heapu8 = val::module_property("HEAPU8");
+    val memory_view = heapu8["constructor"].new_(memory, reinterpret_cast<uintptr_t>(&src[0]), src.size());
+    return memory_view;
+}
+
+
+// ---- codec bindings --------------------------------------------------------
+
+
 // ---- stream bindings (declarations) ----------------------------------------
 
 class ZstdCompressStreamBinding
@@ -106,16 +147,19 @@ private:
 // ---- bindings --------------------------------------------------------------
 
 EMSCRIPTEN_BINDINGS(zstd) {
-    function("dummy", &dummy);
-
     register_vector<u8>("VectorU8");
+
+    function("dummy", &Dummy);
+    function("cloneToVector", &CloneToVector);
+    function("cloneAsTypedArray", &CloneAsTypedArray);
+    function("toTypedArrayView", &ToTypedArrayView);
 
     class_<ZstdCodec>("ZstdCodec")
         .constructor<>()
-        .function("CompressBound", &ZstdCodec::CompressBound)
-        .function("ContentSize", &ZstdCodec::ContentSize)
-        .function("Compress", &ZstdCodec::Compress)
-        .function("Decompress", &ZstdCodec::Decompress)
+        .function("compressBound", &ZstdCodec::CompressBound)
+        .function("contentSize", &ZstdCodec::ContentSize)
+        .function("compress", &ZstdCodec::Compress)
+        .function("decompress", &ZstdCodec::Decompress)
         ;
 }
 
