@@ -1,0 +1,19 @@
+{
+  "name": "example-of-zstd-codec",
+  "version": "1.0.0",
+  "description": "An Example of zstd-codec module",
+  "main": "index.js",
+  "author": "Yoshihito Hirakawa",
+  "license": "MIT",
+  "scripts": {
+    "build": "browserify index.js -o dist/bundle.js -t babelify --presets es2015",
+    "start": "cd dist && python -m SimpleHTTPServer 8084"
+  },
+  "dependencies": {
+    "zstd-codec": "^0.0.2"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babelify": "^8.0.0"
+  }
+}
