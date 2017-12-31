@@ -26,6 +26,38 @@ const tempPath = (name) => {
 const LOREM_TEXT = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.';
 
 
+class TypedArrayChunks {
+    constructor(array, chunk_size) {
+        this._array = array;
+        this._chunk_size = chunk_size;
+        this._offset = 0;
+    }
+
+    [Symbol.iterator]() {
+        return this;
+    }
+
+    next() {
+        if (this._offset >= this._array.length) {
+            return { done: true, value: undefined };
+        }
+
+        const chunk = this._array.slice(this._offset, this._offset + this._chunk_size);
+        this._offset += this._chunk_size;
+        return { done: false, value: chunk };
+    }
+}
+
+
+const createTypedArrayChunks = (array, chunk_size) => {
+    var iterable = {};
+    iterable[Symbol.iterator] = function() {
+
+    };
+    return iterable;
+};
+
+
 describe('ZstdCodec.Generic', () => {
     const generic = new ZstdCodec.Generic();
 
@@ -73,55 +105,88 @@ describe('ZstdCodec.Simple', () => {
             expect(woman_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_woman.bmp').toString());
         });
     });
+});
 
-    /*
-    describe('compress_stream()', () => {
-        it('should compress data', () => {
+describe('ZstdCodec.Streaming', () => {
+    const streaming = new ZstdCodec.Streaming();
+
+    describe('compress()', () => {
+        it('should compress whole data', () => {
             const lorem_bytes = new TextEncoder('utf-8').encode(LOREM_TEXT);
-            const buffer = new ArrayBuffer(codec.compressBound(lorem_bytes));
-            let src_offset = 0;
-            let dest_offset = 0;
-            const success = codec.compress_stream((read_size) => {
-                const read_bytes = lorem_bytes.slice(src_offset, src_offset + read_size);
-                src_offset += read_size;
-                return read_bytes;
-            }, (write_bytes) => {
-                new Uint8Array(buffer, dest_offset, write_bytes.length).set(write_bytes);
-                dest_offset += write_bytes.length;
-            });
-            const compressed_bytes = new Uint8Array(buffer, 0, dest_offset);
+            const compressed_bytes = streaming.compress(lorem_bytes);
 
-            expect(success).toBeTruthy();
+            // compressed?
+            expect(compressed_bytes).toEqual(expect.any(Uint8Array));
             expect(compressed_bytes.length).toBeLessThan(lorem_bytes.length);
+
+            // can decompress?
+            const check_bytes = streaming.decompress(compressed_bytes);
+            expect(check_bytes).toEqual(expect.any(Uint8Array));
+            expect(check_bytes.length).toEqual(lorem_bytes.length);
+            expect(check_bytes.toString()).toEqual(lorem_bytes.toString());
+        });
+
+        it('should compress chunked data', () => {
+            let man_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp');
+            const chunks = new TypedArrayChunks(man_bytes, 32 * 1024);
+            const compressed_bytes = streaming.compressChunks(chunks, 512, 5);
+
+            // compressed?
+            expect(compressed_bytes).toEqual(expect.any(Uint8Array));
+            expect(compressed_bytes.length).toBeLessThan(man_bytes.length);
+
+            // can decompress?
+            const check_bytes = streaming.decompress(compressed_bytes);
+            expect(check_bytes).toEqual(expect.any(Uint8Array));
+            expect(check_bytes.length).toEqual(man_bytes.length);
+            // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
+            expect(check_bytes.slice(      0,  500000).toString()).toEqual(man_bytes.slice(      0,  500000).toString());
+            expect(check_bytes.slice( 500000, 1000000).toString()).toEqual(man_bytes.slice( 500000, 1000000).toString());
+            expect(check_bytes.slice(1000000, 1500000).toString()).toEqual(man_bytes.slice(1000000, 1500000).toString());
+            expect(check_bytes.slice(1500000, 2000000).toString()).toEqual(man_bytes.slice(1500000, 2000000).toString());
         });
     });
 
-    describe('decompress_stream()', () => {
-        it('should decompress data', () => {
-            let src_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp.zst');
-            let src_offset = 0;
-            let dest_buffer = new ArrayBuffer(512 * 1024);
-            let dest_offset = 0;
-            const success = codec.decompress_stream((read_size) => {
-                const read_bytes = src_bytes.slice(src_offset, src_offset + read_size);
-                src_offset += read_bytes.length;
-                return read_bytes;
-            }, (write_bytes) => {
-                dest_buffer = ArrayBufferHelper.ensure_array_buffer(dest_buffer, dest_offset + write_bytes.length);
-                const dest_bytes = new Uint8Array(dest_buffer);
-                dest_bytes.set(write_bytes, dest_offset);
-                dest_offset += write_bytes.length;
-            });
+    describe('decompress()', () => {
+        it('should decompress whole data', () => {
+            let zst_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp.zst');
+            const content_bytes = streaming.decompress(zst_bytes);
 
-            const content_bytes = new Uint8Array(dest_buffer, 0, dest_offset);
-            fs.writeFileSync(tempPath('dance_yorokobi_mai_man.bmp'), content_bytes);
+            // decompressed?
+            expect(content_bytes).toEqual(expect.any(Uint8Array));
+            expect(content_bytes.length).toBeGreaterThan(zst_bytes.length);
 
             const man_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp');
-
-            expect(success).toBeTruthy();
             expect(content_bytes.length).toEqual(man_bytes.length);
-            expect(content_bytes.slice(0, 500000).toString()).toEqual(man_bytes.slice(0, 500000).toString());
+
+            // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
+            expect(content_bytes.slice(      0,  500000).toString()).toEqual(man_bytes.slice(      0,  500000).toString());
+            expect(content_bytes.slice( 500000, 1000000).toString()).toEqual(man_bytes.slice( 500000, 1000000).toString());
+            expect(content_bytes.slice(1000000, 1500000).toString()).toEqual(man_bytes.slice(1000000, 1500000).toString());
+            expect(content_bytes.slice(1500000, 2000000).toString()).toEqual(man_bytes.slice(1500000, 2000000).toString());
+
+            fs.writeFileSync(tempPath('dance_yorokobi_mai_man.bmp'), content_bytes);
+        });
+
+        it('should decompress chunked data', () => {
+            let zst_bytes = fixtureBinary('dance_yorokobi_mai_woman.bmp.zst');
+            const chunks = new TypedArrayChunks(zst_bytes, 1024);
+            const content_bytes = streaming.decompressChunks(chunks, 512 * 1024);
+
+            // decompressed?
+            expect(content_bytes).toEqual(expect.any(Uint8Array));
+            expect(content_bytes.length).toBeGreaterThan(zst_bytes.length);
+
+            const woman_bytes = fixtureBinary('dance_yorokobi_mai_woman.bmp');
+            expect(content_bytes.length).toEqual(woman_bytes.length);
+
+            // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
+            expect(content_bytes.slice(      0,  500000).toString()).toEqual(woman_bytes.slice(      0,  500000).toString());
+            expect(content_bytes.slice( 500000, 1000000).toString()).toEqual(woman_bytes.slice( 500000, 1000000).toString());
+            expect(content_bytes.slice(1000000, 1500000).toString()).toEqual(woman_bytes.slice(1000000, 1500000).toString());
+            expect(content_bytes.slice(1500000, 2000000).toString()).toEqual(woman_bytes.slice(1500000, 2000000).toString());
+
+            fs.writeFileSync(tempPath('dance_yorokobi_mai_woman.bmp'), content_bytes);
         });
     });
-    */
 });

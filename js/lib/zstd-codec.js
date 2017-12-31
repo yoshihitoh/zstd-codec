@@ -3,15 +3,26 @@ const zstd = require('./zstd-codec-binding.js')();
 const codec = new zstd.ZstdCodec();
 
 
-const withCppVector = (callback) => {
-    const vector = new zstd.VectorU8();
+const withBindingInstance = (instance, callback) => {
     try {
-        return callback(vector);
+        return callback(instance);
     }
     finally {
-        vector.delete();
+        instance.delete();
     }
 };
+
+
+const withCppVector = (callback) => {
+    const vector = new zstd.VectorU8();
+    return withBindingInstance(vector, callback);
+};
+
+
+const correctCompressionLevel = (compression_level) => {
+    const DEFAULT_COMPRESSION_LEVEL = 3;
+    return compression_level || DEFAULT_COMPRESSION_LEVEL;
+}
 
 
 const compressBoundImpl = (content_size) => {
@@ -23,6 +34,35 @@ const compressBoundImpl = (content_size) => {
 const contentSizeImpl = (src_vec) => {
     const rc = codec.contentSize(src_vec);
     return rc >= 0 ? rc : null;
+}
+
+
+class ArrayBufferSink {
+    constructor(initial_size) {
+        this._buffer = new ArrayBuffer(initial_size);
+        this._array = new Uint8Array(this._buffer);
+        this._offset = 0;
+    }
+
+    concat(array) {
+        if (array.length + this._offset > this._array.length) {
+            this._grow(Math.max(this._array.length, array.length) * 2);
+        }
+
+        this._array.set(array, this._offset);
+        this._offset += array.length;
+    }
+
+    array() {
+        // NOTE: clone buffer to shrink to fit
+        const buffer = ArrayBufferHelper.transfer_array_buffer(this._buffer, this._offset);
+        return new Uint8Array(buffer);
+    }
+
+    _grow(new_size) {
+        this._buffer = ArrayBufferHelper.transfer_array_buffer(this._buffer, new_size);
+        this._array = new Uint8Array(this._buffer);
+    }
 }
 
 
@@ -47,8 +87,7 @@ class Simple {
         const compressBound = compressBoundImpl(content_bytes.length);
         if (!compressBound) return null;
 
-        const DEFAULT_COMPRESSION_LEVEL = 3;
-        compression_level = compression_level || DEFAULT_COMPRESSION_LEVEL;
+        compression_level = correctCompressionLevel(compression_level);
 
         return withCppVector((src) => {
             return withCppVector((dest) => {
@@ -85,6 +124,90 @@ class Simple {
 }
 
 
+const STREAMING_DEFAULT_BUFFER_SIZE = 512 * 1024;
+
+class Streaming {
+    compress(content_bytes, compression_level) {
+        return withBindingInstance(new zstd.ZstdCompressStreamBinding(), (stream) => {
+            const initial_size = compressBoundImpl(content_bytes.length);
+            const sink = new ArrayBufferSink(initial_size);
+            const callback = (compressed) => {
+                sink.concat(compressed);
+            };
+
+            const level = correctCompressionLevel(compression_level);
+
+            if (!stream.begin(level)) return null;
+            if (!stream.transform(content_bytes, callback)) return null;
+            if (!stream.end(callback)) return null;
+
+            return sink.array();
+        });
+    }
+
+    compressChunks(chunks, size_hint, compression_level) {
+        return withBindingInstance(new zstd.ZstdCompressStreamBinding(), (stream) => {
+            const initial_size = size_hint || STREAMING_DEFAULT_BUFFER_SIZE;
+            const sink = new ArrayBufferSink(initial_size);
+            const callback = (compressed) => {
+                sink.concat(compressed);
+            };
+
+            const level = correctCompressionLevel(compression_level);
+
+            if (!stream.begin(level)) return null;
+            for (const chunk of chunks) {
+                if (!stream.transform(chunk, callback)) return null;
+            }
+            if (!stream.end(callback)) return null;
+
+            return sink.array();
+        });
+    }
+
+    decompress(compressed_bytes, content_size_hint) {
+        return withBindingInstance(new zstd.ZstdDecompressStreamBinding(), (stream) => {
+            const initial_size = content_size_hint || this._estimateContentSize(compressed_bytes);
+            const sink = new ArrayBufferSink(initial_size);
+            const callback = (decompressed) => {
+                sink.concat(decompressed);
+            };
+
+            if (!stream.begin()) return null;
+            if (!stream.transform(compressed_bytes, callback)) return null;
+            if (!stream.end(callback)) return null;
+
+            return sink.array();
+        });
+    }
+
+    decompressChunks(chunks, size_hint) {
+        return withBindingInstance(new zstd.ZstdDecompressStreamBinding(), (stream) => {
+            const initial_size = size_hint || STREAMING_DEFAULT_BUFFER_SIZE;
+            const sink = new ArrayBufferSink(initial_size);
+            const callback = (decompressed) => {
+                sink.concat(decompressed);
+            };
+
+            if (!stream.begin()) return null;
+            for (const chunk of chunks) {
+                if (!stream.transform(chunk, callback)) return null;
+            }
+            if (!stream.end(callback)) return null;
+
+            return sink.array();
+        });
+    }
+
+    _estimateContentSize(compressed_bytes) {
+        // REF: https://code.facebook.com/posts/1658392934479273/smaller-and-faster-data-compression-with-zstandard/
+        // with lzbench, ratio=3.11 .. 3.14. round up to integer
+        return compressed_bytes.length * 4;
+    }
+}
+
+
 exports.ZstdCodec = {};
 exports.ZstdCodec.Generic = Generic;
 exports.ZstdCodec.Simple = Simple;
+exports.ZstdCodec.Streaming = Streaming;

@@ -115,7 +115,7 @@ public:
     ~ZstdCompressStreamBinding();
 
     bool Begin(int compression_level);
-    bool Transform(const Vec<u8>& chunk, val callback);
+    bool Transform(val chunk, val callback);
     bool Flush(val callback);
     bool End(val callback);
 
@@ -131,7 +131,7 @@ public:
     ~ZstdDecompressStreamBinding();
 
     bool Begin();
-    bool Transform(const Vec<u8>& chunk, val callback);
+    bool Transform(val chunk, val callback);
     bool Flush(val callback);
     bool End(val callback);
 
@@ -142,6 +142,110 @@ private:
 
 // ---- stream bindings (implementations) -------------------------------------
 
+//
+// ZstdCompressStreamBinding
+//
+///////////////////////////////////////////////////////////////////////////////
+
+ZstdCompressStreamBinding::ZstdCompressStreamBinding()
+    : stream_()
+{
+}
+
+
+ZstdCompressStreamBinding::~ZstdCompressStreamBinding()
+{
+}
+
+
+bool ZstdCompressStreamBinding::Begin(int compression_level)
+{
+    return stream_.Begin(compression_level);
+}
+
+
+bool ZstdCompressStreamBinding::Transform(val chunk, val callback)
+{
+    // use local vector to ensure thread-safety
+    Vec<u8> chunk_vec;
+    CloneToVector(chunk_vec, chunk);
+
+    return stream_.Transform(chunk_vec, [&callback](const Vec<u8>& compressed_vec) {
+        val compressed = CloneAsTypedArray(compressed_vec);
+        callback(compressed);
+    });
+}
+
+
+bool ZstdCompressStreamBinding::Flush(val callback)
+{
+    return stream_.Flush([&callback](const Vec<u8>& compressed_vec) {
+        val compressed = CloneAsTypedArray(compressed_vec);
+        callback(compressed);
+    });
+}
+
+
+bool ZstdCompressStreamBinding::End(val callback)
+{
+    return stream_.End([&callback](const Vec<u8>& compressed_vec) {
+        val compressed = CloneAsTypedArray(compressed_vec);
+        callback(compressed);
+    });
+}
+
+
+//
+// ZstdDecompressStreamBinding
+//
+///////////////////////////////////////////////////////////////////////////////
+
+ZstdDecompressStreamBinding::ZstdDecompressStreamBinding()
+    : stream_()
+{
+}
+
+
+ZstdDecompressStreamBinding::~ZstdDecompressStreamBinding()
+{
+}
+
+
+bool ZstdDecompressStreamBinding::Begin()
+{
+    return stream_.Begin();
+}
+
+
+bool ZstdDecompressStreamBinding::Transform(val chunk, val callback)
+{
+    // use local vector to ensure thread-safety
+    Vec<u8> chunk_vec;
+    CloneToVector(chunk_vec, chunk);
+
+    return stream_.Transform(chunk_vec, [&callback](const Vec<u8>& decompressed_vec) {
+        val decompressed = CloneAsTypedArray(decompressed_vec);
+        callback(decompressed);
+    });
+}
+
+
+bool ZstdDecompressStreamBinding::Flush(val callback)
+{
+    return stream_.Flush([&callback](const Vec<u8>& decompressed_vec) {
+        val decompressed = CloneAsTypedArray(decompressed_vec);
+        callback(decompressed);
+    });
+}
+
+
+bool ZstdDecompressStreamBinding::End(val callback)
+{
+    return stream_.End([&callback](const Vec<u8>& decompressed_vec) {
+        val decompressed = CloneAsTypedArray(decompressed_vec);
+        callback(decompressed);
+    });
+}
 
 
 // ---- bindings --------------------------------------------------------------
@@ -160,6 +264,22 @@ EMSCRIPTEN_BINDINGS(zstd) {
         .function("contentSize", &ZstdCodec::ContentSize)
         .function("compress", &ZstdCodec::Compress)
         .function("decompress", &ZstdCodec::Decompress)
+        ;
+
+    class_<ZstdCompressStreamBinding>("ZstdCompressStreamBinding")
+        .constructor<>()
+        .function("begin", &ZstdCompressStreamBinding::Begin)
+        .function("transform", &ZstdCompressStreamBinding::Transform)
+        .function("flush", &ZstdCompressStreamBinding::Flush)
+        .function("end", &ZstdCompressStreamBinding::End)
+        ;
+
+    class_<ZstdDecompressStreamBinding>("ZstdDecompressStreamBinding")
+        .constructor<>()
+        .function("begin", &ZstdDecompressStreamBinding::Begin)
+        .function("transform", &ZstdDecompressStreamBinding::Transform)
+        .function("flush", &ZstdDecompressStreamBinding::Flush)
+        .function("end", &ZstdDecompressStreamBinding::End)
         ;
 }
 
