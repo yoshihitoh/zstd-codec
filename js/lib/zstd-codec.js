@@ -1,5 +1,6 @@
 const ArrayBufferHelper = require('./helpers.js').ArrayBufferHelper;
 const zstd = require('./zstd-codec-binding.js')();
+const constants = require('./constants.js');
 const codec = new zstd.ZstdCodec();
 
 
@@ -20,8 +21,7 @@ const withCppVector = (callback) => {
 
 
 const correctCompressionLevel = (compression_level) => {
-    const DEFAULT_COMPRESSION_LEVEL = 3;
-    return compression_level || DEFAULT_COMPRESSION_LEVEL;
+    return compression_level || constants.DEFAULT_COMPRESSION_LEVEL;
 }
 
 
@@ -124,8 +124,6 @@ class Simple {
 }
 
 
-const STREAMING_DEFAULT_BUFFER_SIZE = 512 * 1024;
-
 class Streaming {
     compress(content_bytes, compression_level) {
         return withBindingInstance(new zstd.ZstdCompressStreamBinding(), (stream) => {
@@ -147,7 +145,7 @@ class Streaming {
 
     compressChunks(chunks, size_hint, compression_level) {
         return withBindingInstance(new zstd.ZstdCompressStreamBinding(), (stream) => {
-            const initial_size = size_hint || STREAMING_DEFAULT_BUFFER_SIZE;
+            const initial_size = size_hint || constants.STREAMING_DEFAULT_BUFFER_SIZE;
             const sink = new ArrayBufferSink(initial_size);
             const callback = (compressed) => {
                 sink.concat(compressed);
@@ -183,7 +181,7 @@ class Streaming {
 
     decompressChunks(chunks, size_hint) {
         return withBindingInstance(new zstd.ZstdDecompressStreamBinding(), (stream) => {
-            const initial_size = size_hint || STREAMING_DEFAULT_BUFFER_SIZE;
+            const initial_size = size_hint || constants.STREAMING_DEFAULT_BUFFER_SIZE;
             const sink = new ArrayBufferSink(initial_size);
             const callback = (decompressed) => {
                 sink.concat(decompressed);
