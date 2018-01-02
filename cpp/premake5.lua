@@ -1,6 +1,13 @@
 newoption {
     trigger = "with-emscripten",
-    description = "Generate Makefiles for Emscripten platform"
+    description = "Generate Makefiles for Emscripten platform",
+}
+
+
+newoption {
+    trigger = "with-zstd-dir",
+    description = "Absolute path to zstd directory",
+    value = "/full/path/to/zstd",
 }
 
 
@@ -18,7 +25,21 @@ if premake.modules.gmake2 then
 end
 
 
-function zstd_library_name()
+function zstd_root_dir()
+    if _OPTIONS["with-zstd-dir"] then
+        return _OPTIONS["with-zstd-dir"]
+    else
+        return './zstd'
+    end
+end
+
+
+function zstd_lib_dir()
+    return string.format("%s/lib", zstd_root_dir())
+end
+
+
+function zstd_lib_name()
     if os.istarget("macosx") then
         return 'libzstd.dylib'
     else
@@ -49,10 +70,10 @@ workspace "zstd-codec"
 
 
 externalproject "zstd"
-    location "./zstd"
+    location (zstd_root_dir())
     kind "SharedLib"
     language "C"
-    targetdir "./zstd/lib"
+    targetdir (zstd_lib_dir())
 
     filter "options:with-emscripten"
         targetextension ".bc"
@@ -64,7 +85,7 @@ project "zstd-codec"
     dependson "zstd"
 
     includedirs {
-        "zstd/lib",
+        zstd_lib_dir(),
     }
 
     files {
@@ -75,7 +96,7 @@ project "zstd-codec"
     }
 
     libdirs {
-        "zstd/lib",
+        zstd_lib_dir(),
     }
 
     removefiles {
@@ -85,7 +106,7 @@ project "zstd-codec"
     filter "options:with-emscripten"
         kind "StaticLib"
         prebuildcommands {
-            string.format("{COPY} %%{wks.location}/../zstd/lib/%s %%{wks.location}/../zstd/lib/libzstd.bc", zstd_library_name()),
+            string.format("{COPY} %s/%s %s/libzstd.bc", zstd_lib_dir(), zstd_lib_name(), zstd_lib_dir()),
         }
 
     filter "options:not with-emscripten"
