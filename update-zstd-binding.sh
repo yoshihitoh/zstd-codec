@@ -11,6 +11,13 @@ IMAGE_NAME="yoshihitoh/zstd-emscripten"
 
 CONTAINER_ID="$(docker container ls -qa -f name=${CONTAINER_NAME})"
 
+# move to root directory
+cd ${ROOT_DIR}
+
+# build image
+echo "build docker image on $(pwd)..."
+docker image build -t "yoshihitoh/zstd-emscripten" .
+
 # check container image, using latest image or not.
 if [ ${CONTAINER_ID} ]; then
     # stop and remove if container exists

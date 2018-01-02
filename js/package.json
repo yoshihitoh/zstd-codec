@@ -7,8 +7,9 @@
   "author": "yoshihitoh",
   "license": "MIT",
   "scripts": {
-    "build-binding": "bash docker-build.sh",
+    "build-binding": "bash ../update-zstd-binding.sh",
     "build": "browserify index.js -o dist/bundle.js -t babelify --presets es2015",
+    "lint": "eslint lib",
     "test": "jest",
     "test-debug": "node --inspect-brk node_modules/.bin/jest --runInBand"
   },
