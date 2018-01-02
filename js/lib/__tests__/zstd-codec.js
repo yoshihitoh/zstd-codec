@@ -2,26 +2,20 @@ const fs = require('fs');
 const path = require('path');
 const textEncoding = require('text-encoding');
 const TextEncoder = textEncoding.TextEncoder;
-const TextDecoder = textEncoding.TextDecoder;
-const ArrayBufferHelper = require('../helpers.js').ArrayBufferHelper;
 const ZstdCodec = require('../zstd-codec.js').ZstdCodec;
 
 const fixturePath = (name) => {
     return path.join(__dirname, 'fixtures', name);
-}
+};
 
 const fixtureBinary = (name) => {
     const data = fs.readFileSync(fixturePath(name));
     return new Uint8Array(data);
 };
 
-const fixtureText = (name) => {
-    return fs.readFileSync(fixturePath(name), 'utf-8');
-};
-
 const tempPath = (name) => {
     return path.join(__dirname, 'tmp', name);
-}
+};
 
 const LOREM_TEXT = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.';
 
@@ -47,15 +41,6 @@ class TypedArrayChunks {
         return { done: false, value: chunk };
     }
 }
-
-
-const createTypedArrayChunks = (array, chunk_size) => {
-    var iterable = {};
-    iterable[Symbol.iterator] = function() {
-
-    };
-    return iterable;
-};
 
 
 describe('ZstdCodec.Generic', () => {
@@ -122,7 +107,7 @@ describe('ZstdCodec.Streaming', () => {
             // can decompress?
             const check_bytes = streaming.decompress(compressed_bytes);
             expect(check_bytes).toEqual(expect.any(Uint8Array));
-            expect(check_bytes.length).toEqual(lorem_bytes.length);
+            expect(check_bytes).toHaveLength(lorem_bytes.length);
             expect(check_bytes.toString()).toEqual(lorem_bytes.toString());
         });
 
@@ -138,7 +123,7 @@ describe('ZstdCodec.Streaming', () => {
             // can decompress?
             const check_bytes = streaming.decompress(compressed_bytes);
             expect(check_bytes).toEqual(expect.any(Uint8Array));
-            expect(check_bytes.length).toEqual(man_bytes.length);
+            expect(check_bytes).toHaveLength(man_bytes.length);
             // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
             expect(check_bytes.slice(      0,  500000).toString()).toEqual(man_bytes.slice(      0,  500000).toString());
             expect(check_bytes.slice( 500000, 1000000).toString()).toEqual(man_bytes.slice( 500000, 1000000).toString());
@@ -157,7 +142,7 @@ describe('ZstdCodec.Streaming', () => {
             expect(content_bytes.length).toBeGreaterThan(zst_bytes.length);
 
             const man_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp');
-            expect(content_bytes.length).toEqual(man_bytes.length);
+            expect(content_bytes).toHaveLength(man_bytes.length);
 
             // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
             expect(content_bytes.slice(      0,  500000).toString()).toEqual(man_bytes.slice(      0,  500000).toString());
@@ -178,7 +163,7 @@ describe('ZstdCodec.Streaming', () => {
             expect(content_bytes.length).toBeGreaterThan(zst_bytes.length);
 
             const woman_bytes = fixtureBinary('dance_yorokobi_mai_woman.bmp');
-            expect(content_bytes.length).toEqual(woman_bytes.length);
+            expect(content_bytes).toHaveLength(woman_bytes.length);
 
             // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
             expect(content_bytes.slice(      0,  500000).toString()).toEqual(woman_bytes.slice(      0,  500000).toString());

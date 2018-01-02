@@ -22,7 +22,7 @@ const withCppVector = (callback) => {
 
 const correctCompressionLevel = (compression_level) => {
     return compression_level || constants.DEFAULT_COMPRESSION_LEVEL;
-}
+};
 
 
 const compressBoundImpl = (content_size) => {
@@ -34,7 +34,7 @@ const compressBoundImpl = (content_size) => {
 const contentSizeImpl = (src_vec) => {
     const rc = codec.contentSize(src_vec);
     return rc >= 0 ? rc : null;
-}
+};
 
 
 class ArrayBufferSink {
