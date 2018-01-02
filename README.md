@@ -5,14 +5,32 @@
 - [English](README.md)
 
 ## Description
-- TODO: add description
+zstd-codec is a binding of [Zstandard](http://facebook.github.io/zstd/) for Node.js and Browsers,
+includes JavaScript port of [Zstandard](http://facebook.github.io/zstd/) compiled with [Emscripten](http://kripken.github.io/emscripten-site/index.html).
 
 ## Installation
-- TODO: add installation steps
+npm
+```bash
+npm install zstd-codec
+```
 
+yarn
+```bash
+yarn add zstd-codec
+```
 
 ## Usage
-- TODO: add steps to require zstd-codec
+
+require module, and instantiate api objects.
+
+```bash
+const ZstdCodec = require('zsztd-codec');
+const simple = new ZstdCodec.Simple();
+const streaming = new ZstdCodec.Streaming();
+```
+
+- Use Simple API for small data
+- Use Streaming API for large data
 
 ### Simple API
 - Using Zstandard's Simple API
@@ -21,13 +39,6 @@
 - Store whole input/output bytes into Emscripten's heap
     - Available Emscripten's heap size is 16MiB
     - (input.length + output.length) should be less than 12MiB
-- Use Simple API for small data
-- Use Streaming API for large data
-
-```javascript
-// instantiate simple api codec
-const simple = new ZstdCodec.Simple();
-```
 
 #### compress(content_bytes, compression_level)
 - `content_bytes`:  data to compress, must be `Uint8Array`.
@@ -69,6 +80,8 @@ do_something(data);
 const streaming = new ZstdCodec.Streaming();
 ```
 
+You can use custom `Iterable` object on `compressChunks` / `decompressChunks`.
+
 #### compress(content_bytes, compression_level)
 - `content_bytes`: data to compress, must be 'Uint8Array'
 - `compression_level`: (optional) compression level, default value is `3`
@@ -88,6 +101,7 @@ const size_hint = chunks.map((ar) => ar.length).reduce((p, c) => p + c);
 const compressed = streaming.compressChunks(chunks, size_hint); // use default compression_level 3
 ```
 
+
 #### decompress(compressed_bytes, size_hint)
 - `compressed_bytes`: data to decompress, must be `Uint8Array`.
 - `size_hint`: (optional) size hint to store decompressed data (to improve performance)
@@ -106,6 +120,13 @@ const size_hint = 2 * 1024 * 1024; // 2MiB
 const data = streaming.decompressChunks(chunks, size_hint);
 ```
 
+## Example
+
+### Browser
+See the [document](https://github.com/yoshihitoh/zstd-codec/blob/develop/js/example/README.md).
+
+### Node.js
+TODO: add an example for Node.js.
 
 ## TODO
 - add CI (Travis CI or Circle CI?)
@@ -113,6 +134,5 @@ const data = streaming.decompressChunks(chunks, size_hint);
 - write  this document
 - add how to build zstd with Emsxcripten
 - add how to test
-- publish on NPM
 - performance test
 - add more tests
