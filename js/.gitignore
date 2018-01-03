@@ -1,6 +1,8 @@
 
 # NOTE: based on Node.gitignore (https://github.com/github/gitignore/blob/master/Node.gitignore)
 dist/
+!dist/index.html
+!dist/dance_yorokobi_mai_woman.bmp.zst
 !example/dist/
 example/dist/bundle.js
 
