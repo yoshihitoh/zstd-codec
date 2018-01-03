@@ -1,8 +1,7 @@
-FROM debian:latest
+FROM debian:stretch
 LABEL maintainer "yoshihitoh <hammer.and.heart.daphne@gmail.com>"
 
 ENV EMCC_SDK_VERSION    1.37.26
-ENV ZSTD_VERSION        1.3.3
 ENV ZSTD_DIR            /emscripten/zstd
 
 # install prerequisites
