@@ -11,6 +11,7 @@
     "build-local": "browserify index-local.js -o dist/bundle.js -t babelify --presets es2015",
     "lint": "eslint lib",
     "test": "jest",
+    "test-coverage": "jest --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=!lib/zstd-codec-binding.js",
     "test-debug": "node --inspect-brk node_modules/.bin/jest --runInBand"
   },
   "devDependencies": {
