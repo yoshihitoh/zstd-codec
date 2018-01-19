@@ -5,48 +5,13 @@
 #include <iterator>
 #include <iostream>
 #include <string>
+
 #include "zstd-codec.h"
+#include "zstd-dict.h"
 #include "zstd-stream.h"
 
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
-
-
-template <typename T>
-class Resource
-{
-public:
-    using Closer = std::function<void(T*)>;
-
-    virtual ~Resource()
-    {
-        if (resource_ != nullptr) {
-            closer_(resource_);
-        }
-    }
-
-    T* get() const {
-        return resource_;
-    }
-
-    void Close() {
-        if (resource_ != nullptr) {
-            closer_(resource_);
-            resource_ = nullptr;
-        }
-    }
-
-protected:
-    Resource(T* resource, Closer closer)
-        : resource_(resource)
-        , closer_(closer)
-    {
-    }
-
-private:
-    T*  resource_;
-    Closer closer_;
-};
 
 
 class FileResource : public Resource<FILE>
@@ -83,6 +48,45 @@ static Vec<u8> loadFixture(const char* name)
     const auto path = fixturePath(name);
     std::ifstream stream(path.c_str(), std::ios::in | std::ios::binary);
     return Vec<u8>((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+}
+
+
+TEST_CASE("Zstd-Dictionary-Interfaces", "[zstd][compress][decompress][dictionary]")
+{
+    const auto dict = loadFixture("sample-dict");
+    const auto sample_books = loadFixture("sample-books.json");
+
+    const auto compression_level = 5;
+    ZstdCompressionDict cdict(dict, compression_level);
+    ZstdDecompressionDict ddict(dict);
+
+    ZstdCodec codec;
+    Vec<u8> compressed_bytes(codec.CompressBound(sample_books.size()));
+
+    // compress with dictionary
+    auto rc = codec.CompressUsingDict(compressed_bytes, sample_books, cdict);
+    REQUIRE(rc >= 0);
+
+    REQUIRE(rc < sample_books.size());
+    compressed_bytes.resize(rc);
+
+    REQUIRE(codec.ContentSize(compressed_bytes) == sample_books.size());
+
+    // decompress with dictionary
+
+    // NOTE: ensure enough buffer to test return code (avoid truncation)
+    Vec<u8> decompressed_bytes(sample_books.size() * 2);
+    rc = codec.DecompressUsingDict(decompressed_bytes, compressed_bytes, ddict);
+    REQUIRE(rc >= 0);
+
+    REQUIRE(rc == sample_books.size());
+    decompressed_bytes.resize(rc);
+
+    REQUIRE(decompressed_bytes == sample_books);
+
+    // cannot decompress without dictionary
+    rc = codec.Decompress(decompressed_bytes, compressed_bytes);
+    REQUIRE(rc < 0);
 }
 
 
