@@ -1,10 +1,72 @@
 #include <emscripten/bind.h>
 
 #include "../../zstd-codec.h"
+#include "../../zstd-dict.h"
 #include "../../zstd-stream.h"
 
 
 using namespace emscripten;
+
+
+// dictionary bindings
+class ZstdCompressionDictBinding
+{
+public:
+    ZstdCompressionDictBinding(val dict_bytes, int compression_level);
+
+    const ZstdCompressionDict& Get() const;
+
+private:
+    ZstdCompressionDict dict_;
+};
+
+class ZstdDecompressionDictBinding
+{
+public:
+    ZstdDecompressionDictBinding(val dict_bytes);
+
+    const ZstdDecompressionDict& Get() const;
+
+private:
+    ZstdDecompressionDict dict_;
+};
+
+
+// stream bindings (declarations)
+
+class ZstdCompressStreamBinding
+{
+public:
+    ZstdCompressStreamBinding();
+    ~ZstdCompressStreamBinding();
+
+    bool Begin(int compression_level);
+    bool Transform(val chunk, val callback);
+    bool Flush(val callback);
+    bool End(val callback);
+
+private:
+    ZstdCompressStream  stream_;
+};
+
+
+class ZstdDecompressStreamBinding
+{
+public:
+    ZstdDecompressStreamBinding();
+    ~ZstdDecompressStreamBinding();
+
+    bool Begin();
+    bool Transform(val chunk, val callback);
+    bool Flush(val callback);
+    bool End(val callback);
+
+private:
+    ZstdDecompressStream    stream_;
+};
+
+
+// ==== IMPLEMENTATIONS =======================================================
 
 
 // NOTE: ref: https://github.com/kripken/emscripten/issues/5519
@@ -103,41 +165,30 @@ val ToTypedArrayView(const Vec<u8>& src)
 }
 
 
-// ---- codec bindings --------------------------------------------------------
+// --- dictionary bindings (implementations) ----------------------------------
 
-
-// ---- stream bindings (declarations) ----------------------------------------
-
-class ZstdCompressStreamBinding
+ZstdCompressionDictBinding::ZstdCompressionDictBinding(val dict_bytes, int compression_level)
+    : dict_(from_js_typed_array<u8>(dict_bytes), compression_level)
 {
-public:
-    ZstdCompressStreamBinding();
-    ~ZstdCompressStreamBinding();
-
-    bool Begin(int compression_level);
-    bool Transform(val chunk, val callback);
-    bool Flush(val callback);
-    bool End(val callback);
-
-private:
-    ZstdCompressStream  stream_;
-};
+}
 
 
-class ZstdDecompressStreamBinding
+const ZstdCompressionDict& ZstdCompressionDictBinding::Get() const
 {
-public:
-    ZstdDecompressStreamBinding();
-    ~ZstdDecompressStreamBinding();
+    return dict_;
+}
 
-    bool Begin();
-    bool Transform(val chunk, val callback);
-    bool Flush(val callback);
-    bool End(val callback);
 
-private:
-    ZstdDecompressStream    stream_;
-};
+ZstdDecompressionDictBinding::ZstdDecompressionDictBinding(val dict_bytes)
+    : dict_(from_js_typed_array<u8>(dict_bytes))
+{
+}
+
+
+const ZstdDecompressionDict& ZstdDecompressionDictBinding::Get() const
+{
+    return dict_;
+}
 
 
 // ---- stream bindings (implementations) -------------------------------------
@@ -257,6 +308,14 @@ EMSCRIPTEN_BINDINGS(zstd) {
     function("cloneToVector", &CloneToVector);
     function("cloneAsTypedArray", &CloneAsTypedArray);
     function("toTypedArrayView", &ToTypedArrayView);
+
+    class_<ZstdCompressionDictBinding>("ZstdCompressionDictBinding")
+        .constructor<val, int>()
+        ;
+
+    class_<ZstdDecompressionDictBinding>("ZstdDecompressionDictBinding")
+        .constructor<val>()
+        ;
 
     class_<ZstdCodec>("ZstdCodec")
         .constructor<>()
