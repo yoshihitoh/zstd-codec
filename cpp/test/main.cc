@@ -64,7 +64,8 @@ TEST_CASE("Zstd-Dictionary-Interfaces", "[zstd][compress][decompress][dictionary
     Vec<u8> compressed_bytes(codec.CompressBound(sample_books.size()));
 
     // compress with dictionary
-    auto rc = codec.CompressUsingDict(compressed_bytes, sample_books, cdict);
+    // auto rc = codec.CompressUsingDict(compressed_bytes, sample_books, cdict);
+    auto rc = codec.CompressUsingDict(compressed_bytes, sample_books, dict, compression_level);
     REQUIRE(rc >= 0);
 
     REQUIRE(rc < sample_books.size());
@@ -76,7 +77,8 @@ TEST_CASE("Zstd-Dictionary-Interfaces", "[zstd][compress][decompress][dictionary
 
     // NOTE: ensure enough buffer to test return code (avoid truncation)
     Vec<u8> decompressed_bytes(sample_books.size() * 2);
-    rc = codec.DecompressUsingDict(decompressed_bytes, compressed_bytes, ddict);
+    // rc = codec.DecompressUsingDict(decompressed_bytes, compressed_bytes, ddict);
+    rc = codec.DecompressUsingDict(decompressed_bytes, compressed_bytes, dict);
     REQUIRE(rc >= 0);
 
     REQUIRE(rc == sample_books.size());

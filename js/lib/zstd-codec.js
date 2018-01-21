@@ -1,7 +1,12 @@
 const ArrayBufferHelper = require('./helpers.js').ArrayBufferHelper;
-const zstd = require('./zstd-codec-binding.js')();
 const constants = require('./constants.js');
+
+const zstd = require('./zstd-codec-binding.js')();
 const codec = new zstd.ZstdCodec();
+
+const zstd_dict = require('./zstd-dict.js');
+const ZstdCompressionDict = zstd_dict.ZstdCompressionDict;
+const ZstdDecompressionDict = zstd_dict.ZstdDecompressionDict;
 
 
 const withBindingInstance = (instance, callback) => {
@@ -118,6 +123,54 @@ class Simple {
                 if (rc < 0 || rc != contentSize) return null;    // `rc` is compressed size
 
                 return zstd.cloneAsTypedArray(dest);
+            });
+        });
+    }
+
+    compressUsingDict(content_bytes, dict_bytes, compression_level) {
+        // use basic-api `compress`, to embed `frameContentSize`.
+
+        const compressBound = compressBoundImpl(content_bytes.length);
+        if (!compressBound) return null;
+
+        return withCppVector((src) => {
+            return withCppVector((dest) => {
+                return withCppVector((dict) => {
+                    zstd.cloneToVector(src, content_bytes);
+                    dest.resize(compressBound, 0);
+                    zstd.cloneToVector(dict, dict_bytes);
+
+                    debugger;
+                    // var rc = codec.compressUsingDict(dest, src, cdict.get());
+                    var rc = codec.compressUsingDict(dest, src, dict, compression_level);
+                    if (rc < 0) return null;    // `rc` is compressed size
+
+                    dest.resize(rc, 0);
+                    return zstd.cloneAsTypedArray(dest);
+                });
+            });
+        });
+    }
+
+    decompressUsingDict(compressed_bytes, dict_bytes) {
+        // use streaming-api, to support data without `frameContentSize`.
+        return withCppVector((src) => {
+            return withCppVector((dest) => {
+                return withCppVector((dict) => {
+                    zstd.cloneToVector(src, compressed_bytes);
+                    zstd.cloneToVector(dict, dict_bytes);
+
+                    const contentSize = contentSizeImpl(src);
+                    if (!contentSize) return null;
+
+                    dest.resize(contentSize, 0);
+
+                    // var rc = codec.decompressUsingDict(dest, src, ddict.get());
+                    var rc = codec.decompressUsingDict(dest, src, dict);
+                    if (rc < 0 || rc != contentSize) return null;    // `rc` is compressed size
+
+                    return zstd.cloneAsTypedArray(dest);
+                });
             });
         });
     }

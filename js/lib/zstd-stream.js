@@ -1,50 +1,14 @@
 const stream = require('stream');
 const zstd = require('./zstd-codec-binding.js')();
 const constants = require('./constants.js');
+const helpers = require('./helpers.js');
 
-
-const getClassName = (obj) => {
-    if (!obj || typeof obj != 'object') return null;
-
-    // Object.prototype.toString returns '[object ClassName]',
-    // remove prefix '[object ' and suffix ']'
-    return Object.prototype.toString.call(obj).slice('[object '.length, -1);
-};
-
-
-const isUint8Array = (obj) => {
-    return getClassName(obj) == 'Uint8Array';
-};
-
-
-const isString = (obj) => {
-    return typeof obj == 'string' || getClassName(obj) == 'String';
-};
-
-
-const toTypedArray = (chunk, encoding, string_decoder) => {
-    if (isString(chunk)) {
-        chunk = string_decoder(encoding);
-    }
-
-    if (isUint8Array(chunk)) {
-        // NOTE: Buffer is recognized as Uint8Array object.
-        return chunk;
-    }
-    else if (getClassName(chunk) == 'ArrayBuffer') {
-        return new Uint8Array(chunk);
-    }
-    else if (Array.isArray(chunk)) {
-        return new Uint8Array(chunk);
-    }
-
-    return null;
-};
-
-
-const fromTypedArrayToBuffer = (typedArray) => {
-    return Buffer.from(typedArray.buffer);
-};
+const ArrayBufferHelper = helpers.ArrayBufferHelper;
+const getClassName = helpers.getClassName;
+const isUint8Array = helpers.isUint8Array;
+const isString = helpers.isString;
+const toTypedArray = helpers.toTypedArray;
+const fromTypedArrayToBuffer = helpers.fromTypedArrayToBuffer;
 
 
 class ZstdCompressTransform extends stream.Transform {

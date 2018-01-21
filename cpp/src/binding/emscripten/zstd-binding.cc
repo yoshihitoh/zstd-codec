@@ -8,30 +8,6 @@
 using namespace emscripten;
 
 
-// dictionary bindings
-class ZstdCompressionDictBinding
-{
-public:
-    ZstdCompressionDictBinding(val dict_bytes, int compression_level);
-
-    const ZstdCompressionDict& Get() const;
-
-private:
-    ZstdCompressionDict dict_;
-};
-
-class ZstdDecompressionDictBinding
-{
-public:
-    ZstdDecompressionDictBinding(val dict_bytes);
-
-    const ZstdDecompressionDict& Get() const;
-
-private:
-    ZstdDecompressionDict dict_;
-};
-
-
 // stream bindings (declarations)
 
 class ZstdCompressStreamBinding
@@ -167,27 +143,16 @@ val ToTypedArrayView(const Vec<u8>& src)
 
 // --- dictionary bindings (implementations) ----------------------------------
 
-ZstdCompressionDictBinding::ZstdCompressionDictBinding(val dict_bytes, int compression_level)
-    : dict_(from_js_typed_array<u8>(dict_bytes), compression_level)
+
+ZstdCompressionDict* CreateCompressionDict(val dict_bytes, int compression_level)
 {
+    return new ZstdCompressionDict(from_js_typed_array<u8>(dict_bytes), compression_level);
 }
 
 
-const ZstdCompressionDict& ZstdCompressionDictBinding::Get() const
+ZstdDecompressionDict* CreateDecompressionDict(val dict_bytes)
 {
-    return dict_;
-}
-
-
-ZstdDecompressionDictBinding::ZstdDecompressionDictBinding(val dict_bytes)
-    : dict_(from_js_typed_array<u8>(dict_bytes))
-{
-}
-
-
-const ZstdDecompressionDict& ZstdDecompressionDictBinding::Get() const
-{
-    return dict_;
+    return new ZstdDecompressionDict(from_js_typed_array<u8>(dict_bytes));
 }
 
 
@@ -309,13 +274,11 @@ EMSCRIPTEN_BINDINGS(zstd) {
     function("cloneAsTypedArray", &CloneAsTypedArray);
     function("toTypedArrayView", &ToTypedArrayView);
 
-    class_<ZstdCompressionDictBinding>("ZstdCompressionDictBinding")
-        .constructor<val, int>()
-        ;
+    class_<ZstdCompressionDict>("ZstdCompressionDict");
+    function("createCompressionDict", &CreateCompressionDict, allow_raw_pointers());
 
-    class_<ZstdDecompressionDictBinding>("ZstdDecompressionDictBinding")
-        .constructor<val>()
-        ;
+    class_<ZstdDecompressionDict>("ZstdDecompressionDict");
+    function("createDecompressionDict", &CreateDecompressionDict, allow_raw_pointers());
 
     class_<ZstdCodec>("ZstdCodec")
         .constructor<>()
@@ -323,6 +286,8 @@ EMSCRIPTEN_BINDINGS(zstd) {
         .function("contentSize", &ZstdCodec::ContentSize)
         .function("compress", &ZstdCodec::Compress)
         .function("decompress", &ZstdCodec::Decompress)
+        .function("compressUsingDict", &ZstdCodec::CompressUsingDict)
+        .function("decompressUsingDict", &ZstdCodec::DecompressUsingDict)
         ;
 
     class_<ZstdCompressStreamBinding>("ZstdCompressStreamBinding")

@@ -143,28 +143,32 @@ int ZstdCodec::Decompress(Vec<u8>& dest, const Vec<u8>& src) const
 }
 
 
-int ZstdCodec::CompressUsingDict(Vec<u8>& dest, const Vec<u8>& src, const ZstdCompressionDict& dict) const
+int ZstdCodec::CompressUsingDict(Vec<u8>& dest, const Vec<u8>& src, const Vec<u8>& cdict_bytes, int compression_level) const
 {
     CompressContext context;
     if (context.fail()) return ERR_ALLOCATE_CCTX;
 
+    ZstdCompressionDict ddict(cdict_bytes, compression_level);
+
     const auto rc = ZSTD_compress_usingCDict(context.get(),
                                              &dest[0], dest.size(),
                                              &src[0], src.size(),
-                                             dict.get());
+                                             ddict.get());
     return ToResult(rc);
 }
 
 
-int ZstdCodec::DecompressUsingDict(Vec<u8>& dest, const Vec<u8>& src, const ZstdDecompressionDict& dict) const
+int ZstdCodec::DecompressUsingDict(Vec<u8>& dest, const Vec<u8>& src, const Vec<u8>& ddict_bytes) const
 {
     DecompressContext context;
     if (context.fail()) return ERR_ALLOCATE_DCTX;
 
+    ZstdDecompressionDict ddict(ddict_bytes);
+
     const auto rc = ZSTD_decompress_usingDDict(context.get(),
                                                &dest[0], dest.size(),
                                                &src[0], src.size(),
-                                               dict.get());
+                                               ddict.get());
     return ToResult(rc);
 }
 
