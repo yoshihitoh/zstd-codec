@@ -11,23 +11,52 @@ function uint8ArrayToBase64( bytes ) {
     return window.btoa( binary );
 }
 
-var fileName = '/dance_yorokobi_mai_woman.bmp.zst';
-var xhr = new XMLHttpRequest();
-xhr.responseType = 'arraybuffer';
-xhr.open('GET', fileName, true);
-xhr.onload = function(e) {
-    var data = new Uint8Array(this.response);
-    var simple = new ZstdCodec.Simple();
-    var bmp_bytes = simple.decompress(data);
-    var bmp_b64 = 'data:image/bmp;base64,' + uint8ArrayToBase64(bmp_bytes);
+function getData(url, handler) {
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = 'arraybuffer';
+    xhr.open('GET', url, true);
+    xhr.onload = function(e) {
+        handler(new Uint8Array(this.response));
+    };
+    xhr.send();
+}
 
-    var image = document.createElement('img');
-    image.src = bmp_b64;
+function showBitmap() {
+    getData( '/dance_yorokobi_mai_woman.bmp.zst', (data) => {
+        var simple = new ZstdCodec.Simple();
+        var bmp_bytes = simple.decompress(data);
+        var bmp_b64 = 'data:image/bmp;base64,' + uint8ArrayToBase64(bmp_bytes);
 
-    var container = document.getElementById('container');
-    container.appendChild(image);
-};
-xhr.send();
+        var image = document.createElement('img');
+        image.src = bmp_b64;
+
+        var container = document.getElementById('container');
+        container.appendChild(image);
+    });
+}
+
+function showTextUsingDict() {
+    getData( '/sample-dict', (dictData) => {
+    getData( '/sample-books.json.zst', (jsonZstData) => {
+        var simple = new ZstdCodec.Simple();
+        var jsonBytes = simple.decompressUsingDict(jsonZstData, dictData);
+
+        var jsonText = new TextDecoder('utf-8').decode(jsonBytes);
+
+        var pre = document.createElement('pre');
+        pre.innerText = jsonText;
+
+        var div = document.createElement('div');
+        div.appendChild(pre);
+
+        var container = document.getElementById('container');
+        container.appendChild(div);
+    });
+    });
+}
+
+    showBitmap();
+    showTextUsingDict();
         </script>
     </head>
     <body>

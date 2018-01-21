@@ -4,6 +4,10 @@ const textEncoding = require('text-encoding');
 const TextEncoder = textEncoding.TextEncoder;
 const ZstdCodec = require('../zstd-codec.js').ZstdCodec;
 
+const zstd_dict = require('../zstd-dict.js');
+const ZstdCompressionDict = zstd_dict.ZstdCompressionDict;
+const ZstdDecompressionDict = zstd_dict.ZstdDecompressionDict;
+
 const fixturePath = (name) => {
     return path.join(__dirname, 'fixtures', name);
 };
@@ -88,6 +92,26 @@ describe('ZstdCodec.Simple', () => {
 
             const woman_bytes = simple.decompress(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'));
             expect(woman_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_woman.bmp').toString());
+        });
+    });
+
+    describe('compressUsingDict', () => {
+        it('should compress data', () => {
+            const compression_level = 5;
+            const dict_bytes = fixtureBinary('sample-dict');
+//            const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
+
+            const books_bytes = fixtureBinary("sample-books.json");
+            // const compressed_bytes = simple.compressUsingDict(books_bytes, cdict);
+            const compressed_bytes = simple.compressUsingDict(books_bytes, dict_bytes, compression_level);
+            expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
+
+            // const ddict = new ZstdCompressionDict(dict_bytes);
+//            expect(simple.decompressUsingDict(compressed_bytes, ddict)).toEqual(books_bytes);
+            expect(simple.decompressUsingDict(compressed_bytes, dict_bytes)).toEqual(books_bytes);
+
+//            cdict.delete();
+//            ddict.delete();
         });
     });
 });
