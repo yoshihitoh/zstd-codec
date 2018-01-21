@@ -140,7 +140,6 @@ class Simple {
                     dest.resize(compressBound, 0);
                     zstd.cloneToVector(dict, dict_bytes);
 
-                    debugger;
                     // var rc = codec.compressUsingDict(dest, src, cdict.get());
                     var rc = codec.compressUsingDict(dest, src, dict, compression_level);
                     if (rc < 0) return null;    // `rc` is compressed size
