@@ -99,19 +99,17 @@ describe('ZstdCodec.Simple', () => {
         it('should compress data', () => {
             const compression_level = 5;
             const dict_bytes = fixtureBinary('sample-dict');
-//            const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
+            const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
 
             const books_bytes = fixtureBinary("sample-books.json");
-            // const compressed_bytes = simple.compressUsingDict(books_bytes, cdict);
-            const compressed_bytes = simple.compressUsingDict(books_bytes, dict_bytes, compression_level);
+            const compressed_bytes = simple.compressUsingDict(books_bytes, cdict);
             expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
 
-            // const ddict = new ZstdCompressionDict(dict_bytes);
-//            expect(simple.decompressUsingDict(compressed_bytes, ddict)).toEqual(books_bytes);
-            expect(simple.decompressUsingDict(compressed_bytes, dict_bytes)).toEqual(books_bytes);
+            const ddict = new ZstdDecompressionDict(dict_bytes);
+            expect(simple.decompressUsingDict(compressed_bytes, ddict)).toEqual(books_bytes);
 
-//            cdict.delete();
-//            ddict.delete();
+            cdict.delete();
+            ddict.delete();
         });
     });
 });

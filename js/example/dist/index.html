@@ -39,7 +39,8 @@ function showTextUsingDict() {
     getData( '/sample-dict', (dictData) => {
     getData( '/sample-books.json.zst', (jsonZstData) => {
         var simple = new ZstdCodec.Simple();
-        var jsonBytes = simple.decompressUsingDict(jsonZstData, dictData);
+        var ddict = new ZstdDecompressionDict(dictData);
+        var jsonBytes = simple.decompressUsingDict(jsonZstData, ddict);
 
         var jsonText = new TextDecoder('utf-8').decode(jsonBytes);
 

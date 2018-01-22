@@ -53,19 +53,18 @@ static Vec<u8> loadFixture(const char* name)
 
 TEST_CASE("Zstd-Dictionary-Interfaces", "[zstd][compress][decompress][dictionary]")
 {
-    const auto dict = loadFixture("sample-dict");
+    const auto dict_bytes = loadFixture("sample-dict");
     const auto sample_books = loadFixture("sample-books.json");
 
     const auto compression_level = 5;
-    ZstdCompressionDict cdict(dict, compression_level);
-    ZstdDecompressionDict ddict(dict);
+    ZstdCompressionDict cdict(dict_bytes, compression_level);
+    ZstdDecompressionDict ddict(dict_bytes);
 
     ZstdCodec codec;
     Vec<u8> compressed_bytes(codec.CompressBound(sample_books.size()));
 
     // compress with dictionary
-    // auto rc = codec.CompressUsingDict(compressed_bytes, sample_books, cdict);
-    auto rc = codec.CompressUsingDict(compressed_bytes, sample_books, dict, compression_level);
+    auto rc = codec.CompressUsingDict(compressed_bytes, sample_books, cdict);
     REQUIRE(rc >= 0);
 
     REQUIRE(rc < sample_books.size());
@@ -77,8 +76,7 @@ TEST_CASE("Zstd-Dictionary-Interfaces", "[zstd][compress][decompress][dictionary
 
     // NOTE: ensure enough buffer to test return code (avoid truncation)
     Vec<u8> decompressed_bytes(sample_books.size() * 2);
-    // rc = codec.DecompressUsingDict(decompressed_bytes, compressed_bytes, ddict);
-    rc = codec.DecompressUsingDict(decompressed_bytes, compressed_bytes, dict);
+    rc = codec.DecompressUsingDict(decompressed_bytes, compressed_bytes, ddict);
     REQUIRE(rc >= 0);
 
     REQUIRE(rc == sample_books.size());

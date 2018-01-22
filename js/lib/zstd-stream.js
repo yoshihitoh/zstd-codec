@@ -1,5 +1,5 @@
 const stream = require('stream');
-const zstd = require('./zstd-codec-binding.js')();
+const binding = require('./module.js').Binding;
 const constants = require('./constants.js');
 const helpers = require('./helpers.js');
 
@@ -16,7 +16,7 @@ class ZstdCompressTransform extends stream.Transform {
         super(option || {});
 
         this.string_decoder = string_decoder;
-        this.binding = new zstd.ZstdCompressStreamBinding();
+        this.binding = new binding.ZstdCompressStreamBinding();
         this.binding.begin(compression_level || constants.DEFAULT_COMPRESSION_LEVEL);
         this.callback = (compressed) => {
             this.push(fromTypedArrayToBuffer(compressed), 'buffer');
@@ -63,7 +63,7 @@ class ZstdDecompressTransform extends stream.Transform {
     constructor(option) {
         super(option || {});
 
-        this.binding = new zstd.ZstdDecompressStreamBinding();
+        this.binding = new binding.ZstdDecompressStreamBinding();
         this.binding.begin();
         this.callback = (decompressed) => {
             this.push(fromTypedArrayToBuffer(decompressed), 'buffer');
