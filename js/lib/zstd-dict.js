@@ -1,9 +1,9 @@
-const zstd = require('./zstd-codec-binding.js')();
+const binding = require('./module.js').Binding;
 
 
 class ZstdCompressionDict {
     constructor(dict_bytes, compression_level) {
-        this.binding = zstd.createCompressionDict(dict_bytes, compression_level);
+        this.binding = binding.createCompressionDict(dict_bytes, compression_level);
     }
 
     get() {
@@ -24,7 +24,7 @@ class ZstdCompressionDict {
 
 class ZstdDecompressionDict {
     constructor(dict_bytes) {
-        this.binding = new zstd.createDecompressionDict(dict_bytes);
+        this.binding = new binding.createDecompressionDict(dict_bytes);
     }
 
     get() {

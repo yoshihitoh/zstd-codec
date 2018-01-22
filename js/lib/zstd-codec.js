@@ -1,8 +1,8 @@
 const ArrayBufferHelper = require('./helpers.js').ArrayBufferHelper;
 const constants = require('./constants.js');
 
-const zstd = require('./zstd-codec-binding.js')();
-const codec = new zstd.ZstdCodec();
+const binding = require('./module.js').Binding;
+const codec = new binding.ZstdCodec();
 
 const zstd_dict = require('./zstd-dict.js');
 const ZstdCompressionDict = zstd_dict.ZstdCompressionDict;
@@ -20,7 +20,7 @@ const withBindingInstance = (instance, callback) => {
 
 
 const withCppVector = (callback) => {
-    const vector = new zstd.VectorU8();
+    const vector = new binding.VectorU8();
     return withBindingInstance(vector, callback);
 };
 
@@ -78,7 +78,7 @@ class Generic {
 
     contentSize(compressed_bytes) {
         return withCppVector((src) => {
-            zstd.cloneToVector(src, compressed_bytes);
+            binding.cloneToVector(src, compressed_bytes);
             return contentSizeImpl(src);
         });
     }
@@ -96,14 +96,14 @@ class Simple {
 
         return withCppVector((src) => {
             return withCppVector((dest) => {
-                zstd.cloneToVector(src, content_bytes);
+                binding.cloneToVector(src, content_bytes);
                 dest.resize(compressBound, 0);
 
                 var rc = codec.compress(dest, src, compression_level);
                 if (rc < 0) return null;    // `rc` is compressed size
 
                 dest.resize(rc, 0);
-                return zstd.cloneAsTypedArray(dest);
+                return binding.cloneAsTypedArray(dest);
             });
         });
     }
@@ -112,7 +112,7 @@ class Simple {
         // use streaming-api, to support data without `frameContentSize`.
         return withCppVector((src) => {
             return withCppVector((dest) => {
-                zstd.cloneToVector(src, compressed_bytes);
+                binding.cloneToVector(src, compressed_bytes);
 
                 const contentSize = contentSizeImpl(src);
                 if (!contentSize) return null;
@@ -122,7 +122,7 @@ class Simple {
                 var rc = codec.decompress(dest, src);
                 if (rc < 0 || rc != contentSize) return null;    // `rc` is compressed size
 
-                return zstd.cloneAsTypedArray(dest);
+                return binding.cloneAsTypedArray(dest);
             });
         });
     }
@@ -136,16 +136,16 @@ class Simple {
         return withCppVector((src) => {
             return withCppVector((dest) => {
                 return withCppVector((dict) => {
-                    zstd.cloneToVector(src, content_bytes);
+                    binding.cloneToVector(src, content_bytes);
                     dest.resize(compressBound, 0);
-                    zstd.cloneToVector(dict, dict_bytes);
+                    binding.cloneToVector(dict, dict_bytes);
 
                     // var rc = codec.compressUsingDict(dest, src, cdict.get());
                     var rc = codec.compressUsingDict(dest, src, dict, compression_level);
                     if (rc < 0) return null;    // `rc` is compressed size
 
                     dest.resize(rc, 0);
-                    return zstd.cloneAsTypedArray(dest);
+                    return binding.cloneAsTypedArray(dest);
                 });
             });
         });
@@ -156,8 +156,8 @@ class Simple {
         return withCppVector((src) => {
             return withCppVector((dest) => {
                 return withCppVector((dict) => {
-                    zstd.cloneToVector(src, compressed_bytes);
-                    zstd.cloneToVector(dict, dict_bytes);
+                    binding.cloneToVector(src, compressed_bytes);
+                    binding.cloneToVector(dict, dict_bytes);
 
                     const contentSize = contentSizeImpl(src);
                     if (!contentSize) return null;
@@ -168,7 +168,7 @@ class Simple {
                     var rc = codec.decompressUsingDict(dest, src, dict);
                     if (rc < 0 || rc != contentSize) return null;    // `rc` is compressed size
 
-                    return zstd.cloneAsTypedArray(dest);
+                    return binding.cloneAsTypedArray(dest);
                 });
             });
         });
@@ -178,7 +178,7 @@ class Simple {
 
 class Streaming {
     compress(content_bytes, compression_level) {
-        return withBindingInstance(new zstd.ZstdCompressStreamBinding(), (stream) => {
+        return withBindingInstance(new binding.ZstdCompressStreamBinding(), (stream) => {
             const initial_size = compressBoundImpl(content_bytes.length);
             const sink = new ArrayBufferSink(initial_size);
             const callback = (compressed) => {
@@ -196,7 +196,7 @@ class Streaming {
     }
 
     compressChunks(chunks, size_hint, compression_level) {
-        return withBindingInstance(new zstd.ZstdCompressStreamBinding(), (stream) => {
+        return withBindingInstance(new binding.ZstdCompressStreamBinding(), (stream) => {
             const initial_size = size_hint || constants.STREAMING_DEFAULT_BUFFER_SIZE;
             const sink = new ArrayBufferSink(initial_size);
             const callback = (compressed) => {
@@ -216,7 +216,7 @@ class Streaming {
     }
 
     decompress(compressed_bytes, size_hint) {
-        return withBindingInstance(new zstd.ZstdDecompressStreamBinding(), (stream) => {
+        return withBindingInstance(new binding.ZstdDecompressStreamBinding(), (stream) => {
             const initial_size = size_hint || this._estimateContentSize(compressed_bytes);
             const sink = new ArrayBufferSink(initial_size);
             const callback = (decompressed) => {
@@ -232,7 +232,7 @@ class Streaming {
     }
 
     decompressChunks(chunks, size_hint) {
-        return withBindingInstance(new zstd.ZstdDecompressStreamBinding(), (stream) => {
+        return withBindingInstance(new binding.ZstdDecompressStreamBinding(), (stream) => {
             const initial_size = size_hint || constants.STREAMING_DEFAULT_BUFFER_SIZE;
             const sink = new ArrayBufferSink(initial_size);
             const callback = (decompressed) => {
