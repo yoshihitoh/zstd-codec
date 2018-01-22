@@ -24,7 +24,7 @@ yarn add zstd-codec
 require module, and instantiate api objects.
 
 ```bash
-const ZstdCodec = require('zsztd-codec');
+const ZstdCodec = require('zsztd-codec').ZstdCodec;
 const simple = new ZstdCodec.Simple();
 const streaming = new ZstdCodec.Streaming();
 ```
@@ -119,6 +119,21 @@ const chunks = [dataPart1, dataPart2, dataPart3, ...];
 const size_hint = 2 * 1024 * 1024; // 2MiB
 const data = streaming.decompressChunks(chunks, size_hint);
 ```
+
+### Dictionary API
+
+```javascript
+const zstd_codec = require('zstd-codec');
+
+// compress using trained dictionary
+const cdict = new zstd_codec.ZstdCompressionDict(dict_bytes, compression_level);
+const compressed = simple.compressUsingDict(data, cdict);
+
+// decompress using trained dictionary
+const ddict = new zstd_codec.ZstdDecompressionDict(dict_bytes);
+const data = simple.decompressUsingDict(compressed, ddict);
+```
+
 
 ## Example
 
