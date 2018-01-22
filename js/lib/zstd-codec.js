@@ -127,7 +127,7 @@ class Simple {
         });
     }
 
-    compressUsingDict(content_bytes, dict_bytes, compression_level) {
+    compressUsingDict(content_bytes, cdict) {
         // use basic-api `compress`, to embed `frameContentSize`.
 
         const compressBound = compressBoundImpl(content_bytes.length);
@@ -135,41 +135,33 @@ class Simple {
 
         return withCppVector((src) => {
             return withCppVector((dest) => {
-                return withCppVector((dict) => {
-                    binding.cloneToVector(src, content_bytes);
-                    dest.resize(compressBound, 0);
-                    binding.cloneToVector(dict, dict_bytes);
+                binding.cloneToVector(src, content_bytes);
+                dest.resize(compressBound, 0);
 
-                    // var rc = codec.compressUsingDict(dest, src, cdict.get());
-                    var rc = codec.compressUsingDict(dest, src, dict, compression_level);
-                    if (rc < 0) return null;    // `rc` is compressed size
+                var rc = codec.compressUsingDict(dest, src, cdict.get());
+                if (rc < 0) return null;    // `rc` is original content size
 
-                    dest.resize(rc, 0);
-                    return binding.cloneAsTypedArray(dest);
-                });
+                dest.resize(rc, 0);
+                return binding.cloneAsTypedArray(dest);
             });
         });
     }
 
-    decompressUsingDict(compressed_bytes, dict_bytes) {
+    decompressUsingDict(compressed_bytes, ddict) {
         // use streaming-api, to support data without `frameContentSize`.
         return withCppVector((src) => {
             return withCppVector((dest) => {
-                return withCppVector((dict) => {
-                    binding.cloneToVector(src, compressed_bytes);
-                    binding.cloneToVector(dict, dict_bytes);
+                binding.cloneToVector(src, compressed_bytes);
 
-                    const contentSize = contentSizeImpl(src);
-                    if (!contentSize) return null;
+                const contentSize = contentSizeImpl(src);
+                if (!contentSize) return null;
 
-                    dest.resize(contentSize, 0);
+                dest.resize(contentSize, 0);
 
-                    // var rc = codec.decompressUsingDict(dest, src, ddict.get());
-                    var rc = codec.decompressUsingDict(dest, src, dict);
-                    if (rc < 0 || rc != contentSize) return null;    // `rc` is compressed size
+                var rc = codec.decompressUsingDict(dest, src, ddict.get());
+                if (rc < 0 || rc != contentSize) return null;    // `rc` is compressed size
 
-                    return binding.cloneAsTypedArray(dest);
-                });
+                return binding.cloneAsTypedArray(dest);
             });
         });
     }
