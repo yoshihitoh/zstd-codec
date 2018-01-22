@@ -101,7 +101,7 @@ describe('ZstdCodec.Simple', () => {
             const dict_bytes = fixtureBinary('sample-dict');
             const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
 
-            const books_bytes = fixtureBinary("sample-books.json");
+            const books_bytes = fixtureBinary('sample-books.json');
             const compressed_bytes = simple.compressUsingDict(books_bytes, cdict);
             expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
 

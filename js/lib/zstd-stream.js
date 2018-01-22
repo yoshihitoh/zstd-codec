@@ -3,10 +3,7 @@ const binding = require('./module.js').Binding;
 const constants = require('./constants.js');
 const helpers = require('./helpers.js');
 
-const ArrayBufferHelper = helpers.ArrayBufferHelper;
 const getClassName = helpers.getClassName;
-const isUint8Array = helpers.isUint8Array;
-const isString = helpers.isString;
 const toTypedArray = helpers.toTypedArray;
 const fromTypedArrayToBuffer = helpers.fromTypedArrayToBuffer;
 

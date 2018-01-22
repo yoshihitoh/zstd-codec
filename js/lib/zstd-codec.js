@@ -4,10 +4,6 @@ const constants = require('./constants.js');
 const binding = require('./module.js').Binding;
 const codec = new binding.ZstdCodec();
 
-const zstd_dict = require('./zstd-dict.js');
-const ZstdCompressionDict = zstd_dict.ZstdCompressionDict;
-const ZstdDecompressionDict = zstd_dict.ZstdDecompressionDict;
-
 
 const withBindingInstance = (instance, callback) => {
     try {
