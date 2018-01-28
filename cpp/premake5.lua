@@ -71,7 +71,7 @@ workspace "zstd-codec"
 
 externalproject "zstd"
     location (zstd_root_dir())
-    kind "SharedLib"
+    kind "StaticLib"
     language "C"
     targetdir (zstd_lib_dir())
 
@@ -81,8 +81,13 @@ externalproject "zstd"
 
 project "zstd-codec"
     language "C++"
+    kind "StaticLib"
 
     dependson "zstd"
+
+    defines {
+        "ZSTD_STATIC_LINKING_ONLY",
+    }
 
     includedirs {
         zstd_lib_dir(),
@@ -104,16 +109,8 @@ project "zstd-codec"
     }
 
     filter "options:with-emscripten"
-        kind "StaticLib"
         prebuildcommands {
             string.format("{COPY} %s/%s %s/libzstd.bc", zstd_lib_dir(), zstd_lib_name(), zstd_lib_dir()),
-        }
-
-    filter "options:not with-emscripten"
-        kind "SharedLib"
-
-        links {
-            "zstd"
         }
 
 
@@ -135,6 +132,7 @@ project "test-zstd-codec"
     }
 
     links {
+        "zstd",
         "zstd-codec",
     }
 
