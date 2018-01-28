@@ -38,6 +38,7 @@ const contentSizeImpl = (src_vec) => {
 };
 
 
+
 class ArrayBufferSink {
     constructor(initial_size) {
         this._buffer = new ArrayBuffer(initial_size);
@@ -203,6 +204,40 @@ class Streaming {
         });
     }
 
+    compressUsingDict(content_bytes, cdict) {
+        return withBindingInstance(new binding.ZstdCompressStreamBinding(), (stream) => {
+            const initial_size = compressBoundImpl(content_bytes.length);
+            const sink = new ArrayBufferSink(initial_size);
+            const callback = (compressed) => {
+                sink.concat(compressed);
+            };
+
+            if (!stream.beginUsingDict(cdict.get())) return null;
+            if (!stream.transform(content_bytes, callback)) return null;
+            if (!stream.end(callback)) return null;
+
+            return sink.array();
+        });
+    }
+
+    compressChunksUsingDict(chunks, size_hint, cdict) {
+        return withBindingInstance(new binding.ZstdCompressStreamBinding(), (stream) => {
+            const initial_size = size_hint || constants.STREAMING_DEFAULT_BUFFER_SIZE;
+            const sink = new ArrayBufferSink(initial_size);
+            const callback = (compressed) => {
+                sink.concat(compressed);
+            };
+
+            if (!stream.beginUsingDict(cdict.get())) return null;
+            for (const chunk of chunks) {
+                if (!stream.transform(chunk, callback)) return null;
+            }
+            if (!stream.end(callback)) return null;
+
+            return sink.array();
+        });
+    }
+
     decompress(compressed_bytes, size_hint) {
         return withBindingInstance(new binding.ZstdDecompressStreamBinding(), (stream) => {
             const initial_size = size_hint || this._estimateContentSize(compressed_bytes);
@@ -228,6 +263,40 @@ class Streaming {
             };
 
             if (!stream.begin()) return null;
+            for (const chunk of chunks) {
+                if (!stream.transform(chunk, callback)) return null;
+            }
+            if (!stream.end(callback)) return null;
+
+            return sink.array();
+        });
+    }
+
+    decompressUsingDict(compressed_bytes, size_hint, ddict) {
+        return withBindingInstance(new binding.ZstdDecompressStreamBinding(), (stream) => {
+            const initial_size = size_hint || this._estimateContentSize(compressed_bytes);
+            const sink = new ArrayBufferSink(initial_size);
+            const callback = (decompressed) => {
+                sink.concat(decompressed);
+            };
+
+            if (!stream.beginUsingDict(ddict.get())) return null;
+            if (!stream.transform(compressed_bytes, callback)) return null;
+            if (!stream.end(callback)) return null;
+
+            return sink.array();
+        });
+    }
+
+    decompressChunksUsingDict(chunks, size_hint, ddict) {
+        return withBindingInstance(new binding.ZstdDecompressStreamBinding(), (stream) => {
+            const initial_size = size_hint || constants.STREAMING_DEFAULT_BUFFER_SIZE;
+            const sink = new ArrayBufferSink(initial_size);
+            const callback = (decompressed) => {
+                sink.concat(decompressed);
+            };
+
+            if (!stream.beginUsingDict(ddict.get())) return null;
             for (const chunk of chunks) {
                 if (!stream.transform(chunk, callback)) return null;
             }
