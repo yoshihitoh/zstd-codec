@@ -1,4 +1,5 @@
 #include <algorithm>
+#include "zstd-dict.h"
 #include "zstd-stream.h"
 
 //
@@ -23,20 +24,17 @@ ZstdCompressStream::~ZstdCompressStream()
 
 bool ZstdCompressStream::Begin(int compression_level)
 {
-    if (HasStream()) return true;
+    return Begin([compression_level](ZSTD_CStream* cstream) {
+        return ZSTD_initCStream(cstream, compression_level);
+    });
+}
 
-    CStreamPtr stream(ZSTD_createCStream(), ZSTD_freeCStream);
-    if (stream == nullptr) return false;
 
-    const auto init_rc = ZSTD_initCStream(stream.get(), compression_level);
-    if (ZSTD_isError(init_rc)) return false;
-
-    stream_ = std::move(stream);
-    src_bytes_.reserve(ZSTD_CStreamInSize());
-    dest_bytes_.resize(ZSTD_CStreamOutSize());  // resize
-    next_read_size_ = src_bytes_.capacity();
-
-    return true;
+bool ZstdCompressStream::Begin(const ZstdCompressionDict& cdict)
+{
+    return Begin([&cdict](ZSTD_CStream* cstream) {
+        return ZSTD_initCStream_usingCDict(cstream, cdict.get());
+    });
 }
 
 
@@ -105,6 +103,25 @@ bool ZstdCompressStream::HasStream() const
 }
 
 
+bool ZstdCompressStream::Begin(CStreamInitializer initializer)
+{
+    if (HasStream()) return true;
+
+    CStreamPtr stream(ZSTD_createCStream(), ZSTD_freeCStream);
+    if (stream == nullptr) return false;
+
+    const auto init_rc = initializer(stream.get());
+    if (ZSTD_isError(init_rc)) return false;
+
+    stream_ = std::move(stream);
+    src_bytes_.reserve(ZSTD_CStreamInSize());
+    dest_bytes_.resize(ZSTD_CStreamOutSize());  // resize
+    next_read_size_ = src_bytes_.capacity();
+
+    return true;
+}
+
+
 bool ZstdCompressStream::Compress(const StreamCallback& callback)
 {
     if (src_bytes_.empty()) return true;
@@ -146,20 +163,17 @@ ZstdDecompressStream::~ZstdDecompressStream()
 
 bool ZstdDecompressStream::Begin()
 {
-    if (HasStream()) return true;
+    return Begin([](ZSTD_DStream* dstream) {
+        return ZSTD_initDStream(dstream);
+    });
+}
 
-    DStreamPtr stream(ZSTD_createDStream(), ZSTD_freeDStream);
-    if (stream == nullptr) return false;
 
-    const auto init_rc = ZSTD_initDStream(stream.get());
-    if (ZSTD_isError(init_rc)) return false;
-
-    stream_ = std::move(stream);
-    src_bytes_.reserve(ZSTD_DStreamInSize());
-    dest_bytes_.resize(ZSTD_DStreamOutSize());  // resize
-    next_read_size_ = init_rc;
-
-    return true;
+bool ZstdDecompressStream::Begin(const ZstdDecompressionDict& ddict)
+{
+    return Begin([&ddict](ZSTD_DStream* dstream) {
+        return ZSTD_initDStream_usingDDict(dstream, ddict.get());
+    });
 }
 
 
@@ -215,6 +229,25 @@ bool ZstdDecompressStream::End(StreamCallback callback)
 bool ZstdDecompressStream::HasStream() const
 {
     return stream_ != nullptr;
+}
+
+
+bool ZstdDecompressStream::Begin(DStreamInitializer initializer)
+{
+    if (HasStream()) return true;
+
+    DStreamPtr stream(ZSTD_createDStream(), ZSTD_freeDStream);
+    if (stream == nullptr) return false;
+
+    const auto init_rc = initializer(stream.get());
+    if (ZSTD_isError(init_rc)) return false;
+
+    stream_ = std::move(stream);
+    src_bytes_.reserve(ZSTD_DStreamInSize());
+    dest_bytes_.resize(ZSTD_DStreamOutSize());  // resize
+    next_read_size_ = init_rc;
+
+    return true;
 }
 
 
