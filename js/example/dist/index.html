@@ -41,11 +41,17 @@ function showTextUsingDict() {
         var simple = new ZstdCodec.Simple();
         var ddict = new ZstdDecompressionDict(dictData);
         var jsonBytes = simple.decompressUsingDict(jsonZstData, ddict);
-
         var jsonText = new TextDecoder('utf-8').decode(jsonBytes);
 
+        var streaming = new ZstdCodec.Streaming();
+        var checkBytes = streaming.decompressUsingDict(jsonBytes, jsonBytes.length, ddict);
+        var checkText = new TextDecoder('utf-8').decode(jsonBytes);
+
+        var content = jsonText == checkText ? jsonText : 'ERROR: decompressed data does not match, simple != streaming';
+
+
         var pre = document.createElement('pre');
-        pre.innerText = jsonText;
+        pre.innerText = content;
 
         var div = document.createElement('div');
         div.appendChild(pre);

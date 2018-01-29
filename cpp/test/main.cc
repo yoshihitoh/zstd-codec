@@ -90,6 +90,48 @@ TEST_CASE("Zstd-Dictionary-Interfaces", "[zstd][compress][decompress][dictionary
 }
 
 
+TEST_CASE("Stream using dictionary", "[zstd][compress][decompress][dictionary][stream]")
+{
+    const auto dict_bytes = loadFixture("sample-dict");
+    const auto sample_books = loadFixture("sample-books.json");
+
+    const auto compression_level = 5;
+    ZstdCompressionDict cdict(dict_bytes, compression_level);
+    ZstdDecompressionDict ddict(dict_bytes);
+
+    Vec<u8> compressed_bytes;
+    compressed_bytes.reserve(1 * 1024 * 1024);
+
+    const auto append_bytes = [](Vec<u8>& dest, const Vec<u8>& src) {
+        std::copy(std::begin(src), std::end(src), std::back_inserter(dest));
+    };
+
+    const StreamCallback cstream_callback = [&append_bytes, &compressed_bytes](const Vec<u8>& compressed) {
+        append_bytes(compressed_bytes, compressed);
+    };
+
+    ZstdCompressStream cstream;
+    REQUIRE(cstream.Begin(cdict));
+    REQUIRE(cstream.Transform(sample_books, cstream_callback));
+    REQUIRE(cstream.End(cstream_callback));
+    REQUIRE(compressed_bytes.size() < sample_books.size());
+
+    Vec<u8> content_bytes;
+    content_bytes.reserve(1 * 1024 * 1024);
+
+    const StreamCallback dstream_callback = [&append_bytes, &content_bytes](const Vec<u8>& decompressed) {
+        append_bytes(content_bytes, decompressed);
+    };
+
+    ZstdDecompressStream dstream;
+    REQUIRE(dstream.Begin(ddict));
+    REQUIRE(dstream.Transform(compressed_bytes, dstream_callback));
+    REQUIRE(dstream.End(dstream_callback));
+    REQUIRE(compressed_bytes.size() < content_bytes.size());
+    REQUIRE(content_bytes == sample_books);
+}
+
+
 TEST_CASE("ZstdCompressStream", "[zstd][compress][stream]")
 {
     const auto block_size = 1024;

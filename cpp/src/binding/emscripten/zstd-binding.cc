@@ -17,6 +17,7 @@ public:
     ~ZstdCompressStreamBinding();
 
     bool Begin(int compression_level);
+    bool BeginUsingDict(const ZstdCompressionDict& cdict);
     bool Transform(val chunk, val callback);
     bool Flush(val callback);
     bool End(val callback);
@@ -33,6 +34,7 @@ public:
     ~ZstdDecompressStreamBinding();
 
     bool Begin();
+    bool BeginUsingDict(const ZstdDecompressionDict& ddict);
     bool Transform(val chunk, val callback);
     bool Flush(val callback);
     bool End(val callback);
@@ -180,6 +182,12 @@ bool ZstdCompressStreamBinding::Begin(int compression_level)
 }
 
 
+bool ZstdCompressStreamBinding::BeginUsingDict(const ZstdCompressionDict& cdict)
+{
+    return stream_.Begin(cdict);
+}
+
+
 bool ZstdCompressStreamBinding::Transform(val chunk, val callback)
 {
     // use local vector to ensure thread-safety
@@ -230,6 +238,12 @@ ZstdDecompressStreamBinding::~ZstdDecompressStreamBinding()
 bool ZstdDecompressStreamBinding::Begin()
 {
     return stream_.Begin();
+}
+
+
+bool ZstdDecompressStreamBinding::BeginUsingDict(const ZstdDecompressionDict& ddict)
+{
+    return stream_.Begin(ddict);
 }
 
 
@@ -293,6 +307,7 @@ EMSCRIPTEN_BINDINGS(zstd) {
     class_<ZstdCompressStreamBinding>("ZstdCompressStreamBinding")
         .constructor<>()
         .function("begin", &ZstdCompressStreamBinding::Begin)
+        .function("beginUsingDict", &ZstdCompressStreamBinding::BeginUsingDict)
         .function("transform", &ZstdCompressStreamBinding::Transform)
         .function("flush", &ZstdCompressStreamBinding::Flush)
         .function("end", &ZstdCompressStreamBinding::End)
@@ -301,6 +316,7 @@ EMSCRIPTEN_BINDINGS(zstd) {
     class_<ZstdDecompressStreamBinding>("ZstdDecompressStreamBinding")
         .constructor<>()
         .function("begin", &ZstdDecompressStreamBinding::Begin)
+        .function("beginUsingDict", &ZstdDecompressStreamBinding::BeginUsingDict)
         .function("transform", &ZstdDecompressStreamBinding::Transform)
         .function("flush", &ZstdDecompressStreamBinding::Flush)
         .function("end", &ZstdDecompressStreamBinding::End)

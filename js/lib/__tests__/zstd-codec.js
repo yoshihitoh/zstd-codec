@@ -196,4 +196,48 @@ describe('ZstdCodec.Streaming', () => {
             fs.writeFileSync(tempPath('dance_yorokobi_mai_woman.bmp'), content_bytes);
         });
     });
+
+    describe('compress/decompress using dict', () => {
+        it('should compre books using dict', () => {
+            const compression_level = 5;
+            const dict_bytes = fixtureBinary('sample-dict');
+            const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
+            const ddict = new ZstdDecompressionDict(dict_bytes);
+
+            const books_bytes = fixtureBinary('sample-books.json');
+            const compressed_bytes = streaming.compressUsingDict(books_bytes, cdict);
+            expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
+
+            debugger;
+            const decompressed_bytes = streaming.decompressUsingDict(compressed_bytes, 512 * 1024, ddict);
+            expect(decompressed_bytes).toEqual(books_bytes);
+
+            cdict.delete();
+            ddict.delete();
+        });
+
+        it('should compress chunked data', () => {
+            const compression_level = 5;
+            const dict_bytes = fixtureBinary('sample-dict');
+            const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
+            const ddict = new ZstdDecompressionDict(dict_bytes);
+
+            const books_bytes = fixtureBinary('sample-books.json');
+            const chunks = new TypedArrayChunks(books_bytes, 1 * 1024);
+            const compressed_bytes = streaming.compressChunksUsingDict(chunks, 512, cdict);
+
+            // compressed?
+            expect(compressed_bytes).toEqual(expect.any(Uint8Array));
+            expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
+
+            // can decompress?
+            const check_bytes = streaming.decompressChunksUsingDict(new TypedArrayChunks(compressed_bytes, 1 * 1024), 512, ddict);
+            expect(check_bytes).toEqual(expect.any(Uint8Array));
+            expect(check_bytes).toHaveLength(books_bytes.length);
+            expect(check_bytes).toEqual(books_bytes);
+
+            cdict.delete();
+            ddict.delete();
+        });
+    });
 });
