@@ -41,4 +41,12 @@ docker container cp \
     ${CONTAINER_NAME}:/emscripten/src/build-emscripten/bin/Release/zstd-codec-binding.js \
     ${JS_DIR}/lib
 
+docker container cp \
+    ${CONTAINER_NAME}:/emscripten/src/build-emscripten/bin/Release/zstd-codec-binding-wasm.js \
+    ${JS_DIR}/lib
+
+docker container cp \
+    ${CONTAINER_NAME}:/emscripten/src/build-emscripten/bin/Release/zstd-codec-binding-wasm.wasm \
+    ${JS_DIR}/lib
+
 echo "done!"
