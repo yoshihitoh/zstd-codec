@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "build-binding": "bash ../update-zstd-binding.sh",
-    "build-local": "browserify index-local.js -o dist/bundle.js -t babelify --presets es2015",
+    "build-local": "browserify index-local.js -o dist/bundle.js -t [ babelify --presets [ es2015 ] --compact [false ] ]",
     "lint": "eslint lib",
     "test": "jest",
     "test-coverage": "jest --coverage --collectCoverageFrom=lib/**/*.js --collectCoverageFrom=!lib/zstd-codec-binding.js",
@@ -17,6 +17,7 @@
   "devDependencies": {
     "babel-core": "^6.26.0",
     "babel-jest": "^22.0.4",
+    "babel-preset-es2015": "^6.22.0",
     "babelify": "^8.0.0",
     "eslint": "^4.14.0",
     "eslint-plugin-jest": "^21.5.0",

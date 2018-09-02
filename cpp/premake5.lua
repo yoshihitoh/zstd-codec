@@ -211,6 +211,8 @@ project "zstd-codec-binding-wasm"
             "-s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\"]'",
             "-s MODULARIZE=1",
             "-s WASM=1",
+            "-s SINGLE_FILE=1",
+            "-s BINARYEN_ASYNC_COMPILATION=0",
         }
 
     filter {"options:with-emscripten", "configurations:Release"}
