@@ -212,7 +212,7 @@ project "zstd-codec-binding-wasm"
             "-s MODULARIZE=1",
             "-s WASM=1",
             "-s SINGLE_FILE=1",
-            "-s BINARYEN_ASYNC_COMPILATION=0",
+            "-s BINARYEN_ASYNC_COMPILATION=1",
         }
 
     filter {"options:with-emscripten", "configurations:Release"}

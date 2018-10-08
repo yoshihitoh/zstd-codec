@@ -12,6 +12,16 @@ const wasmSupported = (() => {
     return false;
 })();
 
-var Module = {};
-const bindingFile = wasmSupported ? 'zstd-codec-binding-wasm.js' : 'zstd-codec-binding.js';
-exports.Binding = require(`./${bindingFile}`)(Module);
+exports.run = (f) => {
+    const Module = {};
+    Module.onRuntimeInitialized = () => {
+        f(Module);
+    };
+
+    if (wasmSupported) {
+        require('./zstd-codec-binding-wasm.js')(Module);
+    }
+    else {
+        require('./zstd-codec-binding.js')(Module);
+    }
+};

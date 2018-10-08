@@ -2,11 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const textEncoding = require('text-encoding');
 const TextEncoder = textEncoding.TextEncoder;
-const ZstdCodec = require('../zstd-codec.js').ZstdCodec;
-
-const zstd_dict = require('../zstd-dict.js');
-const ZstdCompressionDict = zstd_dict.ZstdCompressionDict;
-const ZstdDecompressionDict = zstd_dict.ZstdDecompressionDict;
+const ZstdCodec = require('../zstd-codec.js');
 
 const fixturePath = (name) => {
     return path.join(__dirname, 'fixtures', name);
@@ -48,196 +44,252 @@ class TypedArrayChunks {
 
 
 describe('ZstdCodec.Generic', () => {
-    const generic = new ZstdCodec.Generic();
-
     describe('compressBound()', () => {
-        it('should retrieve compressed size in worst case', () => {
-            expect(generic.compressBound(new Uint8Array())).toBeGreaterThan(0);
+        it('should retrieve compressed size in worst case', done => {
+            ZstdCodec.run((zstd) => {
+                const generic = new zstd.Generic();
+                expect(generic.compressBound(new Uint8Array())).toBeGreaterThan(0);
 
-            const lorem_bytes = fixtureBinary('lorem.txt');
-            expect(generic.compressBound(lorem_bytes)).toBeGreaterThan(0);
+                const lorem_bytes = fixtureBinary('lorem.txt');
+                expect(generic.compressBound(lorem_bytes)).toBeGreaterThan(0);
+
+                done();
+            });
         });
     });
 
     describe('contentSize()', () => {
-        it('should retrieve content size from zstd compressed files', () => {
-            expect(generic.contentSize(fixtureBinary('lorem.txt.zst'))).toBe(446);
-            expect(generic.contentSize(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'))).toBe(1920054);
-            expect(generic.contentSize(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'))).toBe(1920054);
+        it('should retrieve content size from zstd compressed files', done => {
+            ZstdCodec.run((zstd) => {
+                const generic = new zstd.Generic();
+                expect(generic.contentSize(fixtureBinary('lorem.txt.zst'))).toBe(446);
+                expect(generic.contentSize(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'))).toBe(1920054);
+                expect(generic.contentSize(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'))).toBe(1920054);
+
+                done();
+            });
         });
     });
 });
 
 
 describe('ZstdCodec.Simple', () => {
-    const simple = new ZstdCodec.Simple();
-
     describe('compress()', () => {
-        it('should compress data', () => {
-            const lorem_bytes = new TextEncoder('utf-8').encode(LOREM_TEXT);
-            const compressed_bytes = simple.compress(lorem_bytes);
+        it('should compress data', done => {
+            ZstdCodec.run((zstd) => {
+                const simple = new zstd.Simple();
+                const lorem_bytes = new TextEncoder('utf-8').encode(LOREM_TEXT);
+                const compressed_bytes = simple.compress(lorem_bytes);
 
-            expect(compressed_bytes.length).toBeLessThan(lorem_bytes.length);
-            expect(simple.decompress(compressed_bytes)).toEqual(lorem_bytes);
+                expect(compressed_bytes.length).toBeLessThan(lorem_bytes.length);
+                expect(simple.decompress(compressed_bytes)).toEqual(lorem_bytes);
+
+                done();
+            });
         });
     });
 
     describe('decompress()', () => {
-        it('should decompress data', () => {
-            const lorem_bytes = simple.decompress(fixtureBinary('lorem.txt.zst'));
-            expect(lorem_bytes).toEqual(fixtureBinary('lorem.txt'));
-            // NOTE: use .toString() to avoid RangeError.
-            const man_bytes = simple.decompress(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'));
-            expect(man_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_man.bmp').toString());
+        it('should decompress data', done => {
+            ZstdCodec.run((zstd) => {
+                const simple = new zstd.Simple();
+                const lorem_bytes = simple.decompress(fixtureBinary('lorem.txt.zst'));
+                expect(lorem_bytes).toEqual(fixtureBinary('lorem.txt'));
+                // NOTE: use .toString() to avoid RangeError.
+                const man_bytes = simple.decompress(fixtureBinary('dance_yorokobi_mai_man.bmp.zst'));
+                expect(man_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_man.bmp').toString());
 
-            const woman_bytes = simple.decompress(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'));
-            expect(woman_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_woman.bmp').toString());
+                const woman_bytes = simple.decompress(fixtureBinary('dance_yorokobi_mai_woman.bmp.zst'));
+                expect(woman_bytes.toString()).toEqual(fixtureBinary('dance_yorokobi_mai_woman.bmp').toString());
+
+                done();
+            });
         });
     });
 
     describe('compressUsingDict', () => {
-        it('should compress data', () => {
-            const compression_level = 5;
-            const dict_bytes = fixtureBinary('sample-dict');
-            const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
+        it('should compress data', done => {
+            ZstdCodec.run((zstd) => {
+                const simple = new zstd.Simple();
+                const ZstdCompressionDict = zstd.Dict.Compression;
+                const ZstdDecompressionDict = zstd.Dict.Decompression;
 
-            const books_bytes = fixtureBinary('sample-books.json');
-            const compressed_bytes = simple.compressUsingDict(books_bytes, cdict);
-            expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
+                const compression_level = 5;
+                const dict_bytes = fixtureBinary('sample-dict');
+                const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
 
-            const ddict = new ZstdDecompressionDict(dict_bytes);
-            expect(simple.decompressUsingDict(compressed_bytes, ddict)).toEqual(books_bytes);
+                const books_bytes = fixtureBinary('sample-books.json');
+                const compressed_bytes = simple.compressUsingDict(books_bytes, cdict);
+                expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
 
-            cdict.delete();
-            ddict.delete();
+                const ddict = new ZstdDecompressionDict(dict_bytes);
+                expect(simple.decompressUsingDict(compressed_bytes, ddict)).toEqual(books_bytes);
+
+                cdict.delete();
+                ddict.delete();
+
+                done();
+            });
         });
     });
 });
 
 describe('ZstdCodec.Streaming', () => {
-    const streaming = new ZstdCodec.Streaming();
-
     describe('compress()', () => {
-        it('should compress whole data', () => {
-            const lorem_bytes = new TextEncoder('utf-8').encode(LOREM_TEXT);
-            const compressed_bytes = streaming.compress(lorem_bytes);
+        it('should compress whole data', done => {
+            ZstdCodec.run(zstd => {
+                const streaming = new zstd.Streaming();
+                const lorem_bytes = new TextEncoder('utf-8').encode(LOREM_TEXT);
+                const compressed_bytes = streaming.compress(lorem_bytes);
 
-            // compressed?
-            expect(compressed_bytes).toEqual(expect.any(Uint8Array));
-            expect(compressed_bytes.length).toBeLessThan(lorem_bytes.length);
+                // compressed?
+                expect(compressed_bytes).toEqual(expect.any(Uint8Array));
+                expect(compressed_bytes.length).toBeLessThan(lorem_bytes.length);
 
-            // can decompress?
-            const check_bytes = streaming.decompress(compressed_bytes);
-            expect(check_bytes).toEqual(expect.any(Uint8Array));
-            expect(check_bytes).toHaveLength(lorem_bytes.length);
-            expect(check_bytes.toString()).toEqual(lorem_bytes.toString());
+                // can decompress?
+                const check_bytes = streaming.decompress(compressed_bytes);
+                expect(check_bytes).toEqual(expect.any(Uint8Array));
+                expect(check_bytes).toHaveLength(lorem_bytes.length);
+                expect(check_bytes.toString()).toEqual(lorem_bytes.toString());
+
+                done();
+            });
         });
 
-        it('should compress chunked data', () => {
-            let man_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp');
-            const chunks = new TypedArrayChunks(man_bytes, 32 * 1024);
-            const compressed_bytes = streaming.compressChunks(chunks, 512, 5);
+        it('should compress chunked data', done => {
+            ZstdCodec.run(zstd => {
+                const streaming = new zstd.Streaming();
 
-            // compressed?
-            expect(compressed_bytes).toEqual(expect.any(Uint8Array));
-            expect(compressed_bytes.length).toBeLessThan(man_bytes.length);
+                let man_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp');
+                const chunks = new TypedArrayChunks(man_bytes, 32 * 1024);
+                const compressed_bytes = streaming.compressChunks(chunks, 512, 5);
 
-            // can decompress?
-            const check_bytes = streaming.decompress(compressed_bytes);
-            expect(check_bytes).toEqual(expect.any(Uint8Array));
-            expect(check_bytes).toHaveLength(man_bytes.length);
-            // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
-            expect(check_bytes.slice(      0,  500000).toString()).toEqual(man_bytes.slice(      0,  500000).toString());
-            expect(check_bytes.slice( 500000, 1000000).toString()).toEqual(man_bytes.slice( 500000, 1000000).toString());
-            expect(check_bytes.slice(1000000, 1500000).toString()).toEqual(man_bytes.slice(1000000, 1500000).toString());
-            expect(check_bytes.slice(1500000, 2000000).toString()).toEqual(man_bytes.slice(1500000, 2000000).toString());
+                // compressed?
+                expect(compressed_bytes).toEqual(expect.any(Uint8Array));
+                expect(compressed_bytes.length).toBeLessThan(man_bytes.length);
+
+                // can decompress?
+                const check_bytes = streaming.decompress(compressed_bytes);
+                expect(check_bytes).toEqual(expect.any(Uint8Array));
+                expect(check_bytes).toHaveLength(man_bytes.length);
+                // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
+                expect(check_bytes.slice(      0,  500000).toString()).toEqual(man_bytes.slice(      0,  500000).toString());
+                expect(check_bytes.slice( 500000, 1000000).toString()).toEqual(man_bytes.slice( 500000, 1000000).toString());
+                expect(check_bytes.slice(1000000, 1500000).toString()).toEqual(man_bytes.slice(1000000, 1500000).toString());
+                expect(check_bytes.slice(1500000, 2000000).toString()).toEqual(man_bytes.slice(1500000, 2000000).toString());
+
+                done();
+            });
         });
     });
 
     describe('decompress()', () => {
-        it('should decompress whole data', () => {
-            let zst_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp.zst');
-            const content_bytes = streaming.decompress(zst_bytes);
+        it('should decompress whole data', done => {
+            ZstdCodec.run(zstd => {
+                const streaming = new zstd.Streaming();
 
-            // decompressed?
-            expect(content_bytes).toEqual(expect.any(Uint8Array));
-            expect(content_bytes.length).toBeGreaterThan(zst_bytes.length);
+                let zst_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp.zst');
+                const content_bytes = streaming.decompress(zst_bytes);
 
-            const man_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp');
-            expect(content_bytes).toHaveLength(man_bytes.length);
+                // decompressed?
+                expect(content_bytes).toEqual(expect.any(Uint8Array));
+                expect(content_bytes.length).toBeGreaterThan(zst_bytes.length);
 
-            // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
-            expect(content_bytes.slice(      0,  500000).toString()).toEqual(man_bytes.slice(      0,  500000).toString());
-            expect(content_bytes.slice( 500000, 1000000).toString()).toEqual(man_bytes.slice( 500000, 1000000).toString());
-            expect(content_bytes.slice(1000000, 1500000).toString()).toEqual(man_bytes.slice(1000000, 1500000).toString());
-            expect(content_bytes.slice(1500000, 2000000).toString()).toEqual(man_bytes.slice(1500000, 2000000).toString());
+                const man_bytes = fixtureBinary('dance_yorokobi_mai_man.bmp');
+                expect(content_bytes).toHaveLength(man_bytes.length);
 
-            fs.writeFileSync(tempPath('dance_yorokobi_mai_man.bmp'), content_bytes);
+                // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
+                expect(content_bytes.slice(      0,  500000).toString()).toEqual(man_bytes.slice(      0,  500000).toString());
+                expect(content_bytes.slice( 500000, 1000000).toString()).toEqual(man_bytes.slice( 500000, 1000000).toString());
+                expect(content_bytes.slice(1000000, 1500000).toString()).toEqual(man_bytes.slice(1000000, 1500000).toString());
+                expect(content_bytes.slice(1500000, 2000000).toString()).toEqual(man_bytes.slice(1500000, 2000000).toString());
+
+                fs.writeFileSync(tempPath('dance_yorokobi_mai_man.bmp'), content_bytes);
+
+                done();
+            });
         });
 
-        it('should decompress chunked data', () => {
-            let zst_bytes = fixtureBinary('dance_yorokobi_mai_woman.bmp.zst');
-            const chunks = new TypedArrayChunks(zst_bytes, 1024);
-            const content_bytes = streaming.decompressChunks(chunks, 512 * 1024);
+        it('should decompress chunked data', done => {
+            ZstdCodec.run(zstd => {
+                const streaming = new zstd.Streaming();
 
-            // decompressed?
-            expect(content_bytes).toEqual(expect.any(Uint8Array));
-            expect(content_bytes.length).toBeGreaterThan(zst_bytes.length);
+                let zst_bytes = fixtureBinary('dance_yorokobi_mai_woman.bmp.zst');
+                const chunks = new TypedArrayChunks(zst_bytes, 1024);
+                const content_bytes = streaming.decompressChunks(chunks, 512 * 1024);
 
-            const woman_bytes = fixtureBinary('dance_yorokobi_mai_woman.bmp');
-            expect(content_bytes).toHaveLength(woman_bytes.length);
+                // decompressed?
+                expect(content_bytes).toEqual(expect.any(Uint8Array));
+                expect(content_bytes.length).toBeGreaterThan(zst_bytes.length);
 
-            // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
-            expect(content_bytes.slice(      0,  500000).toString()).toEqual(woman_bytes.slice(      0,  500000).toString());
-            expect(content_bytes.slice( 500000, 1000000).toString()).toEqual(woman_bytes.slice( 500000, 1000000).toString());
-            expect(content_bytes.slice(1000000, 1500000).toString()).toEqual(woman_bytes.slice(1000000, 1500000).toString());
-            expect(content_bytes.slice(1500000, 2000000).toString()).toEqual(woman_bytes.slice(1500000, 2000000).toString());
+                const woman_bytes = fixtureBinary('dance_yorokobi_mai_woman.bmp');
+                expect(content_bytes).toHaveLength(woman_bytes.length);
 
-            fs.writeFileSync(tempPath('dance_yorokobi_mai_woman.bmp'), content_bytes);
+                // NOTE: `RangeError: Maximum call stack size exceeded` occurs when compare whole bytes.
+                expect(content_bytes.slice(      0,  500000).toString()).toEqual(woman_bytes.slice(      0,  500000).toString());
+                expect(content_bytes.slice( 500000, 1000000).toString()).toEqual(woman_bytes.slice( 500000, 1000000).toString());
+                expect(content_bytes.slice(1000000, 1500000).toString()).toEqual(woman_bytes.slice(1000000, 1500000).toString());
+                expect(content_bytes.slice(1500000, 2000000).toString()).toEqual(woman_bytes.slice(1500000, 2000000).toString());
+
+                fs.writeFileSync(tempPath('dance_yorokobi_mai_woman.bmp'), content_bytes);
+
+                done();
+            });
         });
     });
 
     describe('compress/decompress using dict', () => {
-        it('should compre books using dict', () => {
-            const compression_level = 5;
-            const dict_bytes = fixtureBinary('sample-dict');
-            const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
-            const ddict = new ZstdDecompressionDict(dict_bytes);
+        it('should compre books using dict', done => {
+            ZstdCodec.run(zstd => {
+                const streaming = new zstd.Streaming();
 
-            const books_bytes = fixtureBinary('sample-books.json');
-            const compressed_bytes = streaming.compressUsingDict(books_bytes, cdict);
-            expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
+                const compression_level = 5;
+                const dict_bytes = fixtureBinary('sample-dict');
+                const cdict = new zstd.Dict.Compression(dict_bytes, compression_level);
+                const ddict = new zstd.Dict.Decompression(dict_bytes);
 
-            debugger;
-            const decompressed_bytes = streaming.decompressUsingDict(compressed_bytes, 512 * 1024, ddict);
-            expect(decompressed_bytes).toEqual(books_bytes);
+                const books_bytes = fixtureBinary('sample-books.json');
+                const compressed_bytes = streaming.compressUsingDict(books_bytes, cdict);
+                expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
 
-            cdict.delete();
-            ddict.delete();
+                debugger;
+                const decompressed_bytes = streaming.decompressUsingDict(compressed_bytes, 512 * 1024, ddict);
+                expect(decompressed_bytes).toEqual(books_bytes);
+
+                cdict.delete();
+                ddict.delete();
+
+                done();
+            });
         });
 
-        it('should compress chunked data', () => {
-            const compression_level = 5;
-            const dict_bytes = fixtureBinary('sample-dict');
-            const cdict = new ZstdCompressionDict(dict_bytes, compression_level);
-            const ddict = new ZstdDecompressionDict(dict_bytes);
+        it('should compress chunked data', done => {
+            ZstdCodec.run(zstd => {
+                const streaming = new zstd.Streaming();
+                const compression_level = 5;
+                const dict_bytes = fixtureBinary('sample-dict');
+                const cdict = new zstd.Dict.Compression(dict_bytes, compression_level);
+                const ddict = new zstd.Dict.Decompression(dict_bytes);
 
-            const books_bytes = fixtureBinary('sample-books.json');
-            const chunks = new TypedArrayChunks(books_bytes, 1 * 1024);
-            const compressed_bytes = streaming.compressChunksUsingDict(chunks, 512, cdict);
+                const books_bytes = fixtureBinary('sample-books.json');
+                const chunks = new TypedArrayChunks(books_bytes, 1 * 1024);
+                const compressed_bytes = streaming.compressChunksUsingDict(chunks, 512, cdict);
 
-            // compressed?
-            expect(compressed_bytes).toEqual(expect.any(Uint8Array));
-            expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
+                // compressed?
+                expect(compressed_bytes).toEqual(expect.any(Uint8Array));
+                expect(compressed_bytes.length).toBeLessThan(books_bytes.length);
 
-            // can decompress?
-            const check_bytes = streaming.decompressChunksUsingDict(new TypedArrayChunks(compressed_bytes, 1 * 1024), 512, ddict);
-            expect(check_bytes).toEqual(expect.any(Uint8Array));
-            expect(check_bytes).toHaveLength(books_bytes.length);
-            expect(check_bytes).toEqual(books_bytes);
+                // can decompress?
+                const check_bytes = streaming.decompressChunksUsingDict(new TypedArrayChunks(compressed_bytes, 1 * 1024), 512, ddict);
+                expect(check_bytes).toEqual(expect.any(Uint8Array));
+                expect(check_bytes).toHaveLength(books_bytes.length);
+                expect(check_bytes).toEqual(books_bytes);
 
-            cdict.delete();
-            ddict.delete();
+                cdict.delete();
+                ddict.delete();
+
+                done();
+            });
         });
     });
 });
