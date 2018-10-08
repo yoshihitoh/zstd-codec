@@ -1,1 +1,1 @@
-window.ZstdCodec = require('zstd-codec');
+window.ZstdCodec = require('zstd-codec').ZstdCodec;

@@ -379,6 +379,6 @@ trim-right@^1.0.1:
   integrity sha1-yy4SAwZ+DI3h9hQJS5/kVwTqYAM=
 
 zstd-codec@^0.1:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/zstd-codec/-/zstd-codec-0.1.0.tgz#6f90a81b3885109d7747e484fca45217eb2c8775"
-  integrity sha512-9QMjOvnVaF0zUoHNCKZL4RaKxJobCwwHgBJCdU95FE3Gm+v+yqpqDUXUsE6o+dGTIvZbmcTUS377zVi4U6yNYA==
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/zstd-codec/-/zstd-codec-0.1.1.tgz#ee0ec98a732e1c457d3eb33fcec3a5c2bee69196"
+  integrity sha512-9u1cihqoDPaq9Tbxneom8rleCSfz1hxXzz+RmydjOVYnlqkzoMqOpAdJ06Y/RgctUfdyuazXT2uyZMhlPb/x0Q==
