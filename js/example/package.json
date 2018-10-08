@@ -9,7 +9,7 @@
     "build": "browserify index.js -o dist/bundle.js -t babelify --presets es2015"
   },
   "dependencies": {
-    "zstd-codec": "^0.0.9"
+    "zstd-codec": "^0.1"
   },
   "devDependencies": {
     "babel-core": "^6.26.0",
