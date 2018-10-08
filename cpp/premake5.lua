@@ -166,6 +166,53 @@ project "zstd-codec-binding"
             "-s DEMANGLE_SUPPORT=1",
             "-s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\"]'",
             "-s MODULARIZE=1",
+            "-s WASM=0",
+        }
+
+    filter {"options:with-emscripten", "configurations:Release"}
+        linkoptions {
+            "-O2",
+            "-s USE_CLOSURE_COMPILER=1",
+        }
+
+    -- NOTE: don't know how to exclude this project on other platofrms.
+    filter "options:not with-emscripten"
+        files {
+            "src/binding/others/**.cc",
+        }
+
+project "zstd-codec-binding-wasm"
+    kind "SharedLib"
+    language "C++"
+    targetdir "%{wks.location}/bin/%{cfg.buildcfg}"
+
+    -- NOTE: avoid build bindings on non-Emscripten platform
+    filter "options:with-emscripten"
+        targetprefix    ""
+        targetextension ".js"
+
+        includedirs {
+            "zstd/lib",
+        }
+
+        files {
+            "src/binding/emscripten/**.cc",
+        }
+
+        links {
+            "zstd-codec",
+            "zstd",
+        }
+
+        linkoptions {
+            "--bind",
+            "--memory-init-file 0",
+            "-s DEMANGLE_SUPPORT=1",
+            "-s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\"]'",
+            "-s MODULARIZE=1",
+            "-s WASM=1",
+            "-s SINGLE_FILE=1",
+            "-s BINARYEN_ASYNC_COMPILATION=1",
         }
 
     filter {"options:with-emscripten", "configurations:Release"}

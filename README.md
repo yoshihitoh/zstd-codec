@@ -24,9 +24,11 @@ yarn add zstd-codec
 require module, and instantiate api objects.
 
 ```bash
-const ZstdCodec = require('zsztd-codec').ZstdCodec;
-const simple = new ZstdCodec.Simple();
-const streaming = new ZstdCodec.Streaming();
+const ZstdCodec = require('zsztd-codec');
+ZstdCodec.run(zstd => {
+    const simple = new zstd.Simple();
+    const streaming = new zstd.Streaming();
+});
 ```
 
 - Use Simple API for small data
@@ -123,17 +125,45 @@ const data = streaming.decompressChunks(chunks, size_hint);
 ### Dictionary API
 
 ```javascript
-const zstd_codec = require('zstd-codec');
+const ZstdCodec = require('zstd-codec');
+ZstdCodec.run(zstd => {
+    const simple = new zstd.Simple();
 
-// compress using trained dictionary
-const cdict = new zstd_codec.ZstdCompressionDict(dict_bytes, compression_level);
-const compressed = simple.compressUsingDict(data, cdict);
+    // compress using trained dictionary
+    const cdict = new zstd.Dict.Compression(dict_bytes, compression_level);
+    const compressed = simple.compressUsingDict(data, cdict);
 
-// decompress using trained dictionary
-const ddict = new zstd_codec.ZstdDecompressionDict(dict_bytes);
-const data = simple.decompressUsingDict(compressed, ddict);
+    // decompress using trained dictionary
+    const ddict = new zstd.Dict.Decompression(dict_bytes);
+    const data = simple.decompressUsingDict(compressed, ddict);
+});
+
 ```
 
+## Migrate from `v0.0.x` to `v0.1.x`
+
+### API changed
+please use callback style module instantiation.
+
+```javascript
+# v0.0.x
+const zstd = require('zstd-codec').ZstdCodec;
+const simple = new zstd.Simple();
+
+# v0.1.x
+const ZstdCodec = require('zstd-codec');
+ZstdCodec.run(zstd => {
+    const simple = new zstd.Simple();
+});
+```
+
+NOTE: I wanted to use `Promise` instead of callback, but does not work :(
+Need to survey why promise does not work, but it will take a lot of times.
+
+### Class name changed
+
+- ZstdCompressionDict => zsdt.Dict.Compression
+- ZstdDecompressionDict => zsdt.Dict.Decompression
 
 ## Example
 
