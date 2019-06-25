@@ -23,6 +23,6 @@
     "eslint-plugin-jest": "^21.5.0",
     "jest": "^24.8.0",
     "regenerator-runtime": "^0.13.2",
-    "text-encoding": "^0.6.4"
+    "text-encoding": "^0.7.0"
   }
 }
