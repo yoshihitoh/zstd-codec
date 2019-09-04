@@ -146,11 +146,11 @@ ZstdCodec.run(zstd => {
 please use callback style module instantiation.
 
 ```javascript
-# v0.0.x
+// v0.0.x
 const zstd = require('zstd-codec').ZstdCodec;
 const simple = new zstd.Simple();
 
-# v0.1.x
+// v0.1.x
 const ZstdCodec = require('zstd-codec').ZstdCodec;
 ZstdCodec.run(zstd => {
     const simple = new zstd.Simple();
