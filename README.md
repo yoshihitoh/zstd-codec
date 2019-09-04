@@ -23,7 +23,7 @@ yarn add zstd-codec
 
 require module, and instantiate api objects.
 
-```bash
+```javascript
 const ZstdCodec = require('zstd-codec').ZstdCodec;
 ZstdCodec.run(zstd => {
     const simple = new zstd.Simple();
