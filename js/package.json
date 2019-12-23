@@ -1,6 +1,6 @@
 {
   "name": "zstd-codec",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Zstandard codec powered by Emscripten",
   "main": "index.js",
   "repository": "https://github.com/yoshihitoh/zstd-codec",

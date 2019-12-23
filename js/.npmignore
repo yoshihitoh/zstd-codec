@@ -1,0 +1,6 @@
+lib/__tests__/
+example/
+.eslintignore
+.eslintrc.yml
+.gitignore
+index-local.js
