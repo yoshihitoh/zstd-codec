@@ -18,7 +18,7 @@
     "babel-core": "^6.26.0",
     "babel-jest": "^23.6.0",
     "babel-preset-es2015": "^6.22.0",
-    "babelify": "^8.0.0",
+    "babelify": "^10.0.0",
     "eslint": "^6.0.0",
     "eslint-plugin-jest": "^22.7.1",
     "jest": "^24.8.0",
