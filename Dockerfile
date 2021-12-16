@@ -1,26 +1,19 @@
-FROM debian:stretch
+FROM emscripten/emsdk:3.0.0
 LABEL maintainer "yoshihitoh <hammer.and.heart.daphne@gmail.com>"
 
-ENV EMCC_SDK_VERSION    1.38.11
+ENV EMCC_SDK_VERSION    1.38.33
 ENV ZSTD_DIR            /emscripten/zstd
 
 # install prerequisites
 RUN apt-get update
 RUN apt-get install -y \
         wget git-core \
-        build-essential cmake python nodejs openjdk-8-jre-headless 
+        build-essential cmake python nodejs openjdk-8-jre-headless libncurses5
 
-# install emsdk
-WORKDIR /emscripten
-RUN wget https://s3.amazonaws.com/mozilla-games/emscripten/releases/emsdk-portable.tar.gz && \
-    tar xzvf emsdk-portable.tar.gz && \
-    rm emsdk-portable.tar.gz
-
-RUN cd emsdk-portable && \
-    ./emsdk update && \
-    ./emsdk install sdk-${EMCC_SDK_VERSION}-64bit && \
-    ./emsdk activate sdk-${EMCC_SDK_VERSION}-64bit && \
-    echo "source $PWD/emsdk_env.sh" >> ~/.bashrc
+RUN emsdk update && \
+    emsdk install sdk-${EMCC_SDK_VERSION}-64bit && \
+    emsdk activate sdk-${EMCC_SDK_VERSION}-64bit && \
+    echo "source /emsdk/emsdk_env.sh" > ~/.bash_profile
 
 # warmup emsdk
 WORKDIR /emscripten
