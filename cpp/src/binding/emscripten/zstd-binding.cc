@@ -45,6 +45,14 @@ private:
 
 
 // ==== IMPLEMENTATIONS =======================================================
+//
+
+static val heap_buffer()
+{
+    val heap = val::module_property("HEAPU8");
+    return heap["buffer"];
+}
+
 
 
 // NOTE: ref: https://github.com/kripken/emscripten/issues/5519
@@ -53,7 +61,7 @@ static size_t copy_to_vector(Vec<T>& dest, const val& src)
 {
     const auto length = src["length"].as<unsigned int>();
 
-    val memory = val::module_property("buffer");
+    val memory = heap_buffer();
     val memory_view = src["constructor"].new_(memory, reinterpret_cast<uintptr_t>(dest.data()), length);
 
     dest.reserve(length);
@@ -113,7 +121,7 @@ void CloneToVector(Vec<u8>& dest, val src)
     const auto length = src["length"].as<unsigned int>();
     dest.resize(length);
 
-    val memory = val::module_property("buffer");
+    val memory = heap_buffer();
     val memory_view = src["constructor"].new_(memory, reinterpret_cast<uintptr_t>(dest.data()), length);
 
     memory_view.call<void>("set", src);
@@ -123,7 +131,7 @@ void CloneToVector(Vec<u8>& dest, val src)
 val CloneAsTypedArray(const Vec<u8>& src)
 {
     val heapu8 = val::module_property("HEAPU8");
-    val src_buffer = val::module_property("buffer");
+    val src_buffer = heap_buffer();
     val src_view = heapu8["constructor"].new_(src_buffer, reinterpret_cast<uintptr_t>(&src[0]), src.size());
 
     val dest_buffer = src_buffer["constructor"].new_(src.size());
@@ -136,7 +144,7 @@ val CloneAsTypedArray(const Vec<u8>& src)
 
 val ToTypedArrayView(const Vec<u8>& src)
 {
-    val memory = val::module_property("buffer");
+    val memory = heap_buffer();
     val heapu8 = val::module_property("HEAPU8");
     val memory_view = heapu8["constructor"].new_(memory, reinterpret_cast<uintptr_t>(&src[0]), src.size());
     return memory_view;
