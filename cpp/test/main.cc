@@ -11,7 +11,14 @@
 #include "zstd-stream.h"
 
 #define CATCH_CONFIG_MAIN
+#define CATCH_CONFIG_NO_POSIX_SIGNALS
 #include "catch.hpp"
+
+#ifndef HAS_FS_WRITE
+#define HAS_FS_WRITE (1)
+#endif // HAS_FS_WRITE
+
+#define UNUSED(x) (void)x
 
 
 class FileResource : public Resource<FILE>
@@ -48,6 +55,19 @@ static Vec<u8> loadFixture(const char* name)
     const auto path = fixturePath(name);
     std::ifstream stream(path.c_str(), std::ios::in | std::ios::binary);
     return Vec<u8>((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+}
+
+
+static void writeTo(const std::string& path, const Vec<u8>& src)
+{
+#if HAS_FS_WRITE
+    FileResource dest_file(path, "wb");
+    fwrite(&src[0], src.size(), 1, dest_file.get());
+    dest_file.Close();
+#else
+    UNUSED(path);
+    UNUSED(src);
+#endif
 }
 
 
@@ -172,15 +192,12 @@ TEST_CASE("ZstdCompressStream", "[zstd][compress][stream]")
     REQUIRE(codec.Decompress(decompressed_bytes, result_bytes) == content_bytes.size());
     REQUIRE(decompressed_bytes == content_bytes);
 
-    FileResource result_file(tempPath("dance_yorokobi_mai_man.bmp.zst"), "wb");
-    fwrite(&result_bytes[0], result_bytes.size(), 1, result_file.get());
-    result_file.Close();
+    writeTo(tempPath("dance_yorokobi_mai_man.bmp.zst"), result_bytes);
 }
 
 
 TEST_CASE("ZstdDecompressStream", "[zstd][decompress][stream]")
 {
-
     const auto block_size = 1024;
     size_t read_size;
     Vec<u8> read_buff(block_size);
@@ -222,7 +239,5 @@ TEST_CASE("ZstdDecompressStream", "[zstd][decompress][stream]")
     REQUIRE(codec.Decompress(content_bytes, compressed_bytes) == content_size);
     REQUIRE(content_bytes == result_bytes);
 
-    FileResource result_file(tempPath("dance_yorokobi_mai_woman.bmp"), "wb");
-    fwrite(&result_bytes[0], result_bytes.size(), 1, result_file.get());
-    result_file.Close();
+    writeTo(tempPath("dance_yorokobi_mai_woman.bmp"), result_bytes);
 }

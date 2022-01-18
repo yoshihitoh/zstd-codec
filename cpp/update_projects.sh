@@ -10,3 +10,7 @@ echo '------------------------------------------------------------'
 premake5 gmake2 --with-zstd-dir=${ZSTD_DIR}
 echo '------------------------------------------------------------'
 premake5 gmake2 --with-zstd-dir=${ZSTD_DIR} --with-emscripten
+
+echo '------------------------------------------------------------'
+cmake -Bbuild-gnumake-debug             -DCMAKE_BUILD_TYPE=Debug
+emcmake cmake -Bbuild-emscripten-debug  -DCMAKE_BUILD_TYPE=Debug

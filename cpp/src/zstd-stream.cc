@@ -1,6 +1,7 @@
 #include <algorithm>
 #include "zstd-dict.h"
 #include "zstd-stream.h"
+#include "zstd.h"
 
 //
 // ZstdCompressStream

@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <climits>
 #include <functional>
 
 #include "zstd.h"
