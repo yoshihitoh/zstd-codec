@@ -1,7 +1,7 @@
 FROM emscripten/emsdk:3.0.0
 LABEL maintainer "yoshihitoh <hammer.and.heart.daphne@gmail.com>"
 
-ENV EMCC_SDK_VERSION    1.38.33
+ENV EMCC_SDK_VERSION    1.38.41
 ENV ZSTD_DIR            /emscripten/zstd
 
 # install prerequisites
