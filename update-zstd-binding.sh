@@ -2,9 +2,17 @@
 
 set -e
 
+if command -v greadlink >/dev/null 2>&1; then
+    # On Mac, readlink is not the real readlink, and the greadlink version from
+    # coreutils must be used instead.
+    READLINK=greadlink
+else
+    READLINK=readlink
+fi
+
 ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-CPP_DIR=$(greadlink -f "${ROOT_DIR}/cpp")
-JS_DIR=$(greadlink -f "${ROOT_DIR}/js")
+CPP_DIR=$($READLINK -f "${ROOT_DIR}/cpp")
+JS_DIR=$($READLINK -f "${ROOT_DIR}/js")
 
 CONTAINER_NAME="zstd-emscripten"
 IMAGE_NAME="yoshihitoh/zstd-emscripten"
