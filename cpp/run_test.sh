@@ -7,5 +7,7 @@ if [ "${BUILD_TYPE}" == "" ]; then
     BUILD_TYPE="Release"
 fi
 
+mkdir -p "$CPP_DIR/test/tmp"
+
 cd $CPP_DIR
 ./build-gmake/bin/${BUILD_TYPE}/test-zstd-codec
