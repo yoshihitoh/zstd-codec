@@ -167,6 +167,8 @@ project "zstd-codec-binding"
             "-s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\"]'",
             "-s MODULARIZE=1",
             "-s WASM=0",
+            "-s NODEJS_CATCH_EXIT=0",
+            "-s NODEJS_CATCH_REJECTION=0"
         }
 
     filter {"options:with-emscripten", "configurations:Release"}
@@ -213,6 +215,8 @@ project "zstd-codec-binding-wasm"
             "-s WASM=1",
             "-s SINGLE_FILE=1",
             "-s BINARYEN_ASYNC_COMPILATION=1",
+            "-s NODEJS_CATCH_EXIT=0",
+            "-s NODEJS_CATCH_REJECTION=0"
         }
 
     filter {"options:with-emscripten", "configurations:Release"}
