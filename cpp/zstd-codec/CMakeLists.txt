@@ -19,3 +19,10 @@ target_include_directories(zstd-codec PUBLIC include
                                              ${ZSTD_INCLUDE_DIR}
                                              )
 target_link_libraries(zstd-codec PUBLIC libzstd_static fmt::fmt-header-only)
+
+add_executable(zstd-codec-sandbox src/main.cc)
+target_link_libraries(zstd-codec-sandbox zstd-codec)
+
+if (EMSCRIPTEN)
+    target_link_options(zstd-codec-sandbox PRIVATE "-sNODERAWFS=1" "-sINITIAL_MEMORY=314572800" "-flto")
+endif()
