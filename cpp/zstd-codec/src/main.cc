@@ -12,6 +12,8 @@
 
 using namespace std;
 
+static const size_t kMaxChunkSize = 100 * 1024;
+
 static vector<uint8_t> readFile(const char* path) {
     ifstream ifs(path, ios::in | ios::binary);
     vector<uint8_t> data;
@@ -30,22 +32,22 @@ void writeFile(const char* path, vector<uint8_t>&& data) {
     ofs.close();
 }
 
-static tl::expected<void, string> compressFile(const char* src_path) {
-    std::string dest_path(src_path);
-    dest_path += ".zstd";
-
-    auto data = readFile(src_path);
-    auto r = ZstdCompressStream::sized(std::move(*ZstdCompressContext::create()), data.size());
-    if (!r) {
-        return tl::make_unexpected(r.error().message);
+static tl::expected<vector<uint8_t>, string> compress(const vector<uint8_t>& data) {
+    auto r_context = ZstdCompressContext::create();
+    if (!r_context) {
+        return tl::make_unexpected(r_context.error().message);
     }
 
-    auto s = std::move(*r);
+    auto r_stream = ZstdCompressStream::sized(std::move(*r_context), data.size());
+    if (!r_stream) {
+        return tl::make_unexpected(r_stream.error().message);
+    }
 
-    const auto max_size = 100 * 1024;
+    auto s = std::move(*r_stream);
+
     size_t i = 0;
     std::vector<uint8_t> buff;
-    buff.reserve(max_size);
+    buff.reserve(kMaxChunkSize);
 
     std::vector<uint8_t> output;
     output.reserve(data.size());
@@ -54,49 +56,69 @@ static tl::expected<void, string> compressFile(const char* src_path) {
         buff.clear();
 
         auto it = begin(data);
-        const auto take = i + max_size < data.size() ? max_size : data.size() - i;
+        const auto take = i + kMaxChunkSize < data.size() ? kMaxChunkSize : data.size() - i;
         advance(it, i);
         copy(it, it + take, back_inserter(buff));
         i += take;
 
-        s->compress(buff, [take, &output](const std::vector<::uint8_t>& compressed) {
+        const auto r_compress = s->compress(buff, [take, &output](const std::vector<::uint8_t>& compressed) {
             cout << "[compress]: " << take << "B → " << compressed.size() << "B."
                  << " output.size(): " << output.size() << " → " << output.size() + compressed.size()
                  << endl;
             output.insert(output.end(), begin(compressed), end(compressed));
         });
+        if (!r_compress) {
+            return tl::make_unexpected(r_compress.error().message);
+        }
     }
 
-    s->complete([&output](const std::vector<::uint8_t>& compressed) {
+    const auto r_compress = s->complete([&output](const std::vector<::uint8_t>& compressed) {
         cout << "[complete(end)]: flush remaining data " << compressed.size() << "B."
              << " output.size(): " << output.size() << " → " << output.size() + compressed.size()
              << endl;
         output.insert(output.end(), begin(compressed), end(compressed));
     });
+    if (!r_compress) {
+        return tl::make_unexpected(r_compress.error().message);
+    }
 
-//    writeFile("/Users/hirakawa.yoshihito/workspace/private/github/zstd-codec/cpp/CMakeLists.txt.zstd", std::move(output));
+    return output;
+}
+
+static tl::expected<void, string> compressFile(const char* src_path) {
+    std::string dest_path(src_path);
+    dest_path += ".zstd";
+
+    auto data = readFile(src_path);
+    auto r = compress(data);
+    if (!r) {
+        return tl::make_unexpected(r.error());
+    }
+
+    auto output = std::move(*r);
     cout << "data.size(): " << data.size() << endl;
     cout << "output.size(): " << output.size() << endl;
     writeFile(dest_path.c_str(), std::move(output));
+
     return {};
 }
 
-static tl::expected<void, string> decompressFile(const char* src_path) {
-    std::string dest_path(src_path);
-    dest_path += ".decompressed";
-
-    auto data = readFile(src_path);
-    auto r = ZstdDecompressStream::fromContext(std::move(*ZstdDecompressContext::create()));
-    if (!r) {
-        return tl::make_unexpected(r.error().message);
+static tl::expected<vector<uint8_t>, string> decompress(const vector<uint8_t>& data) {
+    auto r_context = ZstdDecompressContext::create();
+    if (!r_context) {
+        return tl::make_unexpected(r_context.error().message);
     }
 
-    auto s = std::move(*r);
+    auto r_stream = ZstdDecompressStream::fromContext(std::move(*r_context));
+    if (!r_stream) {
+        return tl::make_unexpected(r_stream.error().message);
+    }
 
-    const auto max_size = 100 * 1024;
+    auto s = std::move(*r_stream);
+
     size_t i = 0;
     std::vector<uint8_t> buff;
-    buff.reserve(max_size);
+    buff.reserve(kMaxChunkSize);
 
     std::vector<uint8_t> output;
     const auto r_size = ZstdDecompressStream::getFrameContentSize(data);
@@ -108,22 +130,40 @@ static tl::expected<void, string> decompressFile(const char* src_path) {
         buff.clear();
 
         auto it = begin(data);
-        const auto take = i + max_size < data.size() ? max_size : data.size() - i;
+        const auto take = i + kMaxChunkSize < data.size() ? kMaxChunkSize : data.size() - i;
         advance(it, i);
         copy(it, it + take, back_inserter(buff));
         i += take;
 
-        s->decompress(buff, [take, &output](const std::vector<::uint8_t>& decompressed) {
+        const auto r_decompress = s->decompress(buff, [take, &output](const std::vector<::uint8_t>& decompressed) {
             cout << "[decompress]: " << take << "B → " << decompressed.size() << "B."
                  << " output.size(): " << output.size() << " → " << output.size() + decompressed.size()
                  << endl;
             output.insert(output.end(), begin(decompressed), end(decompressed));
         });
+        if (!r_decompress) {
+            return tl::make_unexpected(r_decompress.error().message);
+        }
     }
 
+    return output;
+}
+
+static tl::expected<void, string> decompressFile(const char* src_path) {
+    std::string dest_path(src_path);
+    dest_path += ".decompressed";
+
+    auto data = readFile(src_path);
+    auto r = decompress(data);
+    if (!r) {
+        return tl::make_unexpected(r.error());
+    }
+
+    auto output = std::move(*r);
     cout << "data.size(): " << data.size() << endl;
     cout << "output.size(): " << output.size() << endl;
     writeFile(dest_path.c_str(), std::move(output));
+
     return {};
 }
 
