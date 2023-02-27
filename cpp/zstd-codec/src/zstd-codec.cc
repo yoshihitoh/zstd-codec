@@ -1,6 +1,3 @@
 #include <cstdio>
-#include "zstd-codec/zstd-codec.h"
 
-void ZstdCodec::sayHello() const {
-    printf("Hello!\n");
-}
+#include "zstd-codec/zstd-codec.h"

@@ -30,5 +30,8 @@ set(ZSTD_INCLUDE_DIR "${ZSTD_LIBRARY_DIR}"
 add_subdirectory(lib/fmt EXCLUDE_FROM_ALL)
 
 # add zstd-codec library (common)
-set_property(GLOBAL PROPERTY expected_include_dir lib/expected/include)
 add_subdirectory(zstd-codec)
+
+# if (EMSCRIPTEN)
+    add_subdirectory(zstd-codec-web)
+# endif()

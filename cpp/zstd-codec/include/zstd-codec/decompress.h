@@ -33,9 +33,10 @@ public:
 
     ZSTD_DCtx_s* context() const;
 
-    ZstdDecompressContextResult<void> close();
     ZstdDecompressContextResult<void> resetSession();
     ZstdDecompressContextResult<void> clearDictionary();
+
+    ZstdDecompressContextResult<void> close();
 
 private:
     ZstdDecompressContext() = default;
@@ -68,7 +69,7 @@ private:
 public:
     ~ZstdDecompressStream();
 
-    static ZstdDecompressStreamResult<std::unique_ptr<ZstdDecompressStream>> fromContext(std::unique_ptr<ZstdDecompressContext> context);
+    static ZstdDecompressStreamResult<std::unique_ptr<ZstdDecompressStream>> withContext(std::unique_ptr<ZstdDecompressContext> context);
     static ZstdDecompressStreamResult<tl::optional<uint64_t>> getFrameContentSize(const std::vector<uint8_t>& data);
 
     ZstdDecompressStreamResult<void> decompress(const std::vector<uint8_t>& data, const DecompressStreamCallback& callback);

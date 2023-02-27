@@ -57,18 +57,6 @@ ZSTD_DCtx_s *ZstdDecompressContext::context() const {
     return context_;
 }
 
-ZstdDecompressContextResult<void> ZstdDecompressContext::close() {
-    auto r = updateContext("ZSTD_freeDCtx", [this]() {
-       return ZSTD_freeDCtx(context_);
-    });
-
-    if (r) {
-        context_ = nullptr;
-    }
-
-    return r;
-}
-
 ZstdDecompressContextResult<void> ZstdDecompressContext::resetSession() {
     return updateContext("ZSTD_DCtx_reset(ZSTD_reset_session_only)", [this]() {
         return ZSTD_DCtx_reset(context_, ZSTD_reset_session_only);
@@ -79,6 +67,18 @@ ZstdDecompressContextResult<void> ZstdDecompressContext::clearDictionary() {
     return updateContext("ZSTD_DCtx_refDDict(ZSTD_reset_session_only)", [this]() {
         return ZSTD_DCtx_refDDict(context_, nullptr);
     });
+}
+
+ZstdDecompressContextResult<void> ZstdDecompressContext::close() {
+    auto r = updateContext("ZSTD_freeDCtx", [this]() {
+        return ZSTD_freeDCtx(context_);
+    });
+
+    if (r) {
+        context_ = nullptr;
+    }
+
+    return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -160,12 +160,7 @@ ZstdDecompressStream::ZstdDecompressStream(std::unique_ptr<ZstdDecompressStreamI
 ZstdDecompressStream::~ZstdDecompressStream() = default;
 
 ZstdDecompressStreamResult<std::unique_ptr<ZstdDecompressStream>>
-ZstdDecompressStream::fromContext(std::unique_ptr<ZstdDecompressContext> context) {
-    const auto r = context->resetSession().map_error(decompressStreamErrorFrom);
-    if (!r) {
-        return tl::make_unexpected(r.error());
-    }
-
+ZstdDecompressStream::withContext(std::unique_ptr<ZstdDecompressContext> context) {
     auto pimpl = std::make_unique<ZstdDecompressStreamImpl>(std::move(context));
     return std::unique_ptr<ZstdDecompressStream>(new ZstdDecompressStream(std::move(pimpl)));
 }

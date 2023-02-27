@@ -63,17 +63,6 @@ ZSTD_CCtx_s *ZstdCompressContext::context() const {
     return context_;
 }
 
-ZstdCompressContextResult<void> ZstdCompressContext::close() {
-    auto r = updateContext("ZSTD_freeCCtx", [this]() {
-        return ZSTD_freeCCtx(context_);
-    });
-    if (r) {
-        context_ = nullptr;
-    }
-
-    return r;
-}
-
 ZstdCompressContextResult<void> ZstdCompressContext::resetSession() {
     return updateContext("ZSTD_CCtx_reset(ZSTD_reset_session_only)", [this]() {
         return ZSTD_CCtx_reset(context_, ZSTD_reset_session_only);
@@ -92,6 +81,23 @@ ZstdCompressContextResult<void> ZstdCompressContext::setCompressionLevel(int com
 
 ZstdCompressContextResult<void> ZstdCompressContext::setChecksum(bool enable) {
     return setParameter(context_, ZSTD_c_checksumFlag, enable ? 1 : 0);
+}
+
+ZstdCompressContextResult<void> ZstdCompressContext::setOriginalSize(uint64_t original_size) {
+    return updateContext("ZSTD_CCtx_setPledgedSrcSize", [this, original_size]() {
+        return ZSTD_CCtx_setPledgedSrcSize(context_, original_size);
+    });
+}
+
+ZstdCompressContextResult<void> ZstdCompressContext::close() {
+    auto r = updateContext("ZSTD_freeCCtx", [this]() {
+        return ZSTD_freeCCtx(context_);
+    });
+    if (r) {
+        context_ = nullptr;
+    }
+
+    return r;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -166,35 +172,9 @@ ZstdCompressStream::ZstdCompressStream(std::unique_ptr<ZstdCompressStreamImpl>&&
 ZstdCompressStream::~ZstdCompressStream() = default;
 
 ZstdCompressStreamResult<std::unique_ptr<ZstdCompressStream>>
-ZstdCompressStream::fromContext(std::unique_ptr<ZstdCompressContext>&& context) {
-    const auto r = context->resetSession().map_error(compressStreamErrorFrom);
-    if (!r) {
-        return tl::make_unexpected(r.error());
-    }
-
-    auto pimpl = std::make_unique<ZstdCompressStreamImpl>(std::move(context));
+ZstdCompressStream::withContext(std::unique_ptr<ZstdCompressContext>&& context) {
+    auto pimpl = std::make_unique<ZstdCompressStreamImpl>(std::forward<std::unique_ptr<ZstdCompressContext>>(context));
     return std::unique_ptr<ZstdCompressStream>(new ZstdCompressStream(std::move(pimpl)));
-}
-
-ZstdCompressStreamResult<std::unique_ptr<ZstdCompressStream>>
-ZstdCompressStream::withOriginalSize(std::unique_ptr<ZstdCompressStream> && s, uint64_t original_size) {
-    return s->pimpl_->setOriginalSize(original_size)
-            .map([&s](){
-                return std::forward<std::unique_ptr<ZstdCompressStream>>(s);
-            });
-}
-
-ZstdCompressStreamResult<std::unique_ptr<ZstdCompressStream>>
-ZstdCompressStream::unbounded(std::unique_ptr<ZstdCompressContext> context) {
-    return fromContext(std::move(context));
-}
-
-ZstdCompressStreamResult<std::unique_ptr<ZstdCompressStream>>
-ZstdCompressStream::sized(std::unique_ptr<ZstdCompressContext> context, uint64_t original_size) {
-    return ZstdCompressStream::fromContext(std::move(context))
-            .and_then([original_size](std::unique_ptr<ZstdCompressStream> && s){
-                return withOriginalSize(std::forward<std::unique_ptr<ZstdCompressStream>>(s), original_size);
-            });
 }
 
 ZstdCompressStreamResult<void>

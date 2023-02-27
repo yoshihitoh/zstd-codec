@@ -2,6 +2,11 @@ set(ZSTD_CODEC_HEADERS
         include/zstd-codec/zstd-codec.h
         include/zstd-codec/compress.h
         include/zstd-codec/decompress.h
+        include/zstd-codec/binding/bindable.h
+        include/zstd-codec/binding/binder.h
+        include/zstd-codec/binding/compress.h
+        include/zstd-codec/binding/decompress.h
+        include/zstd-codec/binding/error.h
         )
 
 set(ZSTD_CODEC_SOURCES

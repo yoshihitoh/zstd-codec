@@ -35,11 +35,12 @@ public:
 
     ZSTD_CCtx_s* context() const;
 
-    ZstdCompressContextResult<void> close();
     ZstdCompressContextResult<void> resetSession();
     ZstdCompressContextResult<void> clearDictionary();
     ZstdCompressContextResult<void> setCompressionLevel(int compression_level);
     ZstdCompressContextResult<void> setChecksum(bool enable);
+    ZstdCompressContextResult<void> setOriginalSize(uint64_t original_size);
+    ZstdCompressContextResult<void> close();
 
 private:
     ZstdCompressContext() = default;
@@ -72,8 +73,7 @@ private:
 public:
     ~ZstdCompressStream();
 
-    static ZstdCompressStreamResult<std::unique_ptr<ZstdCompressStream>> unbounded(std::unique_ptr<ZstdCompressContext> context);
-    static ZstdCompressStreamResult<std::unique_ptr<ZstdCompressStream>> sized(std::unique_ptr<ZstdCompressContext> context, uint64_t original_size);
+    static ZstdCompressStreamResult<std::unique_ptr<ZstdCompressStream>> withContext(std::unique_ptr<ZstdCompressContext>&& context);
 
     ZstdCompressStreamResult<void> compress(const std::vector<uint8_t>& data, const CompressStreamCallback& callback);
     ZstdCompressStreamResult<void> flush(const CompressStreamCallback& callback);
@@ -82,10 +82,5 @@ public:
     ZstdCompressStreamResult<void> close();
 
 private:
-    static ZstdCompressStreamResult<std::unique_ptr<ZstdCompressStream>> fromContext(std::unique_ptr<ZstdCompressContext>&& context);
-
-    static ZstdCompressStreamResult<std::unique_ptr<ZstdCompressStream>>
-    withOriginalSize(std::unique_ptr<ZstdCompressStream> && s, uint64_t original_size);
-
     std::unique_ptr<ZstdCompressStreamImpl> pimpl_;
 };
