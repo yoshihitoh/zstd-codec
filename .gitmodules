@@ -1,18 +1,18 @@
 [submodule "cpp/lib/expected"]
-	path = cpp/lib/expected
+	path = lib/expected
 	url = https://github.com/TartanLlama/expected
 [submodule "cpp/lib/zstd"]
-	path = cpp/lib/zstd
+	path = lib/zstd
 	url = https://github.com/facebook/zstd
 [submodule "cpp/lib/Catch2"]
-	path = cpp/lib/Catch2
+	path = lib/Catch2
 	url = https://github.com/catchorg/Catch2
 [submodule "cpp/lib/--force"]
 	path = cpp/lib/--force
 	url = https://github.com/TartanLlama/optional
 [submodule "cpp/lib/optional"]
-	path = cpp/lib/optional
+	path = lib/optional
 	url = https://github.com/TartanLlama/optional
 [submodule "cpp/lib/fmt"]
-	path = cpp/lib/fmt
+	path = lib/fmt
 	url = https://github.com/fmtlib/fmt

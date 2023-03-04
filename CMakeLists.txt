@@ -30,8 +30,12 @@ set(ZSTD_INCLUDE_DIR "${ZSTD_LIBRARY_DIR}"
 add_subdirectory(lib/fmt EXCLUDE_FROM_ALL)
 
 # add zstd-codec library (common)
-add_subdirectory(zstd-codec)
+add_subdirectory(zstd-codec-core)
 
 # if (EMSCRIPTEN)
     add_subdirectory(zstd-codec-web)
-# endif()
+# endif ()
+
+# if (CMAKE_JS_VERSION)
+    add_subdirectory(zstd-codec-node)
+# endif ()

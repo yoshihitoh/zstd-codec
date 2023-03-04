@@ -1,0 +1,11 @@
+{
+  "name": "zstd-codec-web",
+  "version": "0.2.0",
+  "description": "Zstandard codec for web, powered by Emscripten and WebAssembly technology.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "yoshihitoh",
+  "license": "MIT"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "zstd-codec",
+  "private": true,
+  "workspaces": [
+    "zstd-codec-web",
+    "zstd-codec-node"
+  ],
+  "devDependencies": {
+    "cmake-js": "^7.2.1",
+    "node-addon-api": "^6.0.0"
+  }
+}

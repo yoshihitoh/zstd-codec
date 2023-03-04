@@ -1,3 +1,8 @@
 .fleet/
 .idea/
 .vscode/
+
+build*/
+cmake-build-*/
+
+node_modules/
