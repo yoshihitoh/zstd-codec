@@ -5,6 +5,15 @@ function(SET_CMAKEJS_PROPERTIES)
         # you can confirm properties by executing following commands
         # - debug: cmake-js print-configure --debug
         # - release: cmake-js print-configure
+        set(CMAKE_JS_VERSION "7.2.1" PARENT_SCOPE)
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "/Users/hirakawa.yoshihito/workspace/private/github/zstd-codec/build/Debug" PARENT_SCOPE)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" PARENT_SCOPE)
+        set(CMAKE_JS_INC "/Users/hirakawa.yoshihito/.cmake-js/node-x64/v14.18.2/include/node" PARENT_SCOPE)
+        set(CMAKE_JS_SRC "" PARENT_SCOPE)
+        set(CMAKE_OSX_ARCHITECTURES "x86_64" PARENT_SCOPE)
+        set(CMAKE_JS_LIB "" PARENT_SCOPE)
+        set(CMAKE_CXX_FLAGS "-D_DARWIN_USE_64_BIT_INODE=1 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DBUILDING_NODE_EXTENSION" PARENT_SCOPE)
+        set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup" PARENT_SCOPE)
 endfunction(SET_CMAKEJS_PROPERTIES)
 
 if (NOT CMAKE_JS_VERSION)
