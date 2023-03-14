@@ -8,7 +8,7 @@
     "node-addon-api": "^6.0.0"
   },
   "scripts": {
-    "build": "which node && cmake-js -d .. --out ./build-node --target zstd-codec-node",
+    "build": "cmake-js -d .. --out ./build-node --target zstd-codec-node",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

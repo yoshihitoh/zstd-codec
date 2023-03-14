@@ -21,13 +21,20 @@ static val heapBuffer() {
     return heap()["buffer"];
 }
 
+struct EmptyContext {};
+
+struct EmscriptenContext {
+    using WireContext = EmptyContext;
+};
+
+template <Contextual C>
 struct EmscriptenBytesBinding {
     using WireType = val;
     using ValueType = std::vector<uint8_t>;
 
     std::vector<uint8_t> buffer_;
 
-    ValueType fromWireType(WireType wire) {
+    ValueType fromWireType(typename C::WireContext, WireType wire) {
         const auto length = wire["length"].as<unsigned int>();
         buffer_.resize(length);
 
@@ -38,7 +45,7 @@ struct EmscriptenBytesBinding {
         return buffer_;
     }
 
-    WireType intoWireType(ValueType value) {
+    WireType intoWireType(typename C::WireContext, ValueType value) {
         auto heapu8 = heap();
         auto src_buffer = heapBuffer();
         auto src_view = heapu8["constructor"].new_(src_buffer, reinterpret_cast<uintptr_t>(&value[0]), value.size());
@@ -51,15 +58,16 @@ struct EmscriptenBytesBinding {
     }
 };
 
+template <Contextual C>
 struct EmscriptenBytesCallbackBinding {
     using WireType = val;
     using ValueType = std::function<void(const std::vector<uint8_t>&)>;
 
-    EmscriptenBytesBinding bytes_;
+    EmscriptenBytesBinding<C> bytes_;
 
-    ValueType fromWireType(WireType wire) {
+    ValueType fromWireType(typename C::WireContext, WireType wire) {
         return [this, wire](const std::vector<uint8_t>& data) {
-            auto wired_data = bytes_.intoWireType(data);
+            auto wired_data = bytes_.intoWireType({}, data);
             wire(wired_data);
         };
     }
@@ -70,43 +78,65 @@ EM_JS(void, zstdCodecThrowError, (const char* code, const char* message), {
     throw new Error(`code=${UTF8ToString(code)}, message=${UTF8ToString(message)}`);
 });
 
+template <Contextual C>
 struct EmscriptenErrorThrowable {
-    void throwError(const ZstdCodecBindingError& error) {
+    void throwError(typename C::WireContext, const ZstdCodecBindingError& error) {
         auto code = error.code ? fmt::format("Some({})", *error.code) : fmt::format("None");
         zstdCodecThrowError(code.c_str(), error.message.c_str());
     }
 };
 
-using EmscriptenZstdCompressContextBinding = ZstdCompressContextBinding<EmscriptenBytesBinding, EmscriptenBytesCallbackBinding, EmscriptenErrorThrowable>;
-using EmscriptenZstdCompressStreamBinding = ZstdCompressStreamBinding<EmscriptenBytesBinding, EmscriptenBytesCallbackBinding, EmscriptenErrorThrowable>;
+using EmscriptenZstdCompressContextBinding = ZstdCompressContextBinding<
+        EmscriptenContext,
+        EmscriptenBytesBinding<EmscriptenContext>,
+        EmscriptenBytesCallbackBinding<EmscriptenContext>,
+        EmscriptenErrorThrowable<EmscriptenContext>
+        >;
+using EmscriptenZstdCompressStreamBinding = ZstdCompressStreamBinding<
+        EmscriptenContext,
+        EmscriptenBytesBinding<EmscriptenContext>,
+        EmscriptenBytesCallbackBinding<EmscriptenContext>,
+        EmscriptenErrorThrowable<EmscriptenContext>
+        >;
 
-using EmscriptenZstdDecompressContextBinding = ZstdDecompressContextBinding<EmscriptenBytesBinding, EmscriptenBytesCallbackBinding, EmscriptenErrorThrowable>;
-using EmscriptenZstdDecompressStreamBinding = ZstdDecompressStreamBinding<EmscriptenBytesBinding, EmscriptenBytesCallbackBinding, EmscriptenErrorThrowable>;
+using EmscriptenZstdDecompressContextBinding = ZstdDecompressContextBinding<
+        EmscriptenContext,
+        EmscriptenBytesBinding<EmscriptenContext>,
+        EmscriptenBytesCallbackBinding<EmscriptenContext>,
+        EmscriptenErrorThrowable<EmscriptenContext>
+        >;
+using EmscriptenZstdDecompressStreamBinding = ZstdDecompressStreamBinding<
+        EmscriptenContext,
+        EmscriptenBytesBinding<EmscriptenContext>,
+        EmscriptenBytesCallbackBinding<EmscriptenContext>,
+        EmscriptenErrorThrowable<EmscriptenContext>
+        >;
 
-using EmscriptenZstdCodecBinder = ZstdCodecBinder<EmscriptenBytesBinding, EmscriptenBytesCallbackBinding, EmscriptenErrorThrowable>;
+using EmscriptenZstdCodecBinder = ZstdCodecBinder<
+        EmscriptenContext,
+        EmscriptenBytesBinding<EmscriptenContext>,
+        EmscriptenBytesCallbackBinding<EmscriptenContext>,
+        EmscriptenErrorThrowable<EmscriptenContext>
+        >;
 
 static EmscriptenZstdCodecBinder emscriptenBinder() {
-    return EmscriptenZstdCodecBinder(
-            EmscriptenBytesBinding(),
-            EmscriptenBytesCallbackBinding(),
-            EmscriptenErrorThrowable()
-    );
+    return EmscriptenZstdCodecBinder({}, {}, {});
 }
 
 static std::unique_ptr<EmscriptenZstdCompressContextBinding> compressContextBinding() {
-    return EmscriptenZstdCompressContextBinding::create(emscriptenBinder());
+    return EmscriptenZstdCompressContextBinding::create({}, emscriptenBinder());
 }
 
 static std::unique_ptr<EmscriptenZstdCompressStreamBinding> compressStreamBinding(std::unique_ptr<EmscriptenZstdCompressContextBinding> context) {
-    return EmscriptenZstdCompressStreamBinding ::create(emscriptenBinder(), context->takeContext());
+    return EmscriptenZstdCompressStreamBinding ::create({}, emscriptenBinder(), context->takeContext());
 }
 
 static std::unique_ptr<EmscriptenZstdDecompressContextBinding> decompressContextBinding() {
-    return EmscriptenZstdDecompressContextBinding::create(emscriptenBinder());
+    return EmscriptenZstdDecompressContextBinding::create({}, emscriptenBinder());
 }
 
 static std::unique_ptr<EmscriptenZstdDecompressStreamBinding> decompressStreamBinding(std::unique_ptr<EmscriptenZstdDecompressContextBinding> context) {
-    return EmscriptenZstdDecompressStreamBinding ::create(emscriptenBinder(), context->takeContext());
+    return EmscriptenZstdDecompressStreamBinding ::create({}, emscriptenBinder(), context->takeContext());
 }
 
 EMSCRIPTEN_BINDINGS(zstdCodec) {

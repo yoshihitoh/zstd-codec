@@ -9,11 +9,13 @@
 
 #include "../compress.h"
 
-template <BytesBindable B, BytesCallbackBindable C, ErrorThrowable E>
+template <Contextual C, BytesBindable<C> B, BytesCallbackBindable<C> F, ErrorThrowable<C> E>
 class ZstdCompressContextBinding {
 private:
-    ZstdCodecBinder<B, C, E> binding_;
+    ZstdCodecBinder<C, B, F, E> binding_;
     std::unique_ptr<ZstdCompressContext> context_;
+
+    typedef ZstdCompressContextResult<void> (ZstdCompressContext::*ContextAction)();
 
     static ZstdCodecBindingError errorFrom(ZstdCompressContextError&& e) {
         return ZstdCodecBindingError {
@@ -22,45 +24,27 @@ private:
         };
     }
 
-    void throwError(ZstdCompressContextError&& e) {
-        const auto error = errorFrom(std::forward<ZstdCompressContextError&&>(e));
-        binding_.throwError(error);
-    }
-
-    ZstdCompressContextBinding(ZstdCodecBinder<B, C, E>&& binder, std::unique_ptr<ZstdCompressContext>&& context)
+    ZstdCompressContextBinding(ZstdCodecBinder<C, B, F, E>&& binder, std::unique_ptr<ZstdCompressContext>&& context)
             : binding_(binder)
             , context_(std::forward<std::unique_ptr<ZstdCompressContext>>(context))
     {
     }
 
-    typedef ZstdCompressContextResult<void> (ZstdCompressContext::*ContextAction)();
-
-    void updateContext(ContextAction action) {
-        assert(context_ != nullptr && "cannot update empty context.");
-        auto result = ((*context_).*action)();
-        if (!result) {
-            throwError(std::forward<ZstdCompressContextError>(result.error()));
-        }
-    }
-
-    void updateContext(std::function<ZstdCompressContextResult<void>()>&& action) {
-        assert(context_ != nullptr && "cannot update empty context.");
-        auto result = action();
-        if (!result) {
-            throwError(std::forward<ZstdCompressContextError>(result.error()));
-        }
+    void throwError(typename C::WireContext wire_context, ZstdCompressContextError&& e) {
+        const auto error = errorFrom(std::forward<ZstdCompressContextError&&>(e));
+        binding_.throwError(wire_context, error);
     }
 
 public:
-    using BinderType = ZstdCodecBinder<B, C, E>;
-    using BindingType = ZstdCompressContextBinding<B, C, E>;
+    using BinderType = ZstdCodecBinder<C, B, F, E>;
+    using BindingType = ZstdCompressContextBinding<C, B, F, E>;
     using ContextPtr = std::unique_ptr<ZstdCompressContext>;
 
-    static std::unique_ptr<BindingType> create(BinderType binder) {
+    static std::unique_ptr<BindingType> create(typename C::WireContext wire_context, BinderType binder) {
         auto r = ZstdCompressContext::create();
         if (!r) {
             const auto error = errorFrom(std::forward<ZstdCompressContextError&&>(r.error()));
-            binder.throwError(error);
+            binder.throwError(wire_context, error);
             return nullptr;
         }
 
@@ -68,42 +52,58 @@ public:
         return std::unique_ptr<BindingType>(binding);
     }
 
+    void updateContext(typename C::WireContext wire_context, ContextAction action) {
+        assert(context_ != nullptr && "cannot update empty context.");
+        auto result = ((*context_).*action)();
+        if (!result) {
+            throwError(wire_context, std::forward<ZstdCompressContextError>(result.error()));
+        }
+    }
+
+    void updateContext(typename C::WireContext wire_context, std::function<ZstdCompressContextResult<void>(ZstdCompressContext&)>&& action) {
+        assert(context_ != nullptr && "cannot update empty context.");
+        auto result = action(*context_);
+        if (!result) {
+            throwError(wire_context, std::forward<ZstdCompressContextError>(result.error()));
+        }
+    }
+
     std::unique_ptr<ZstdCompressContext> takeContext() {
         assert(context_ != nullptr && "cannot update empty context.");
         return std::unique_ptr<ZstdCompressContext>(context_.release());
     }
 
-    void resetSession() {
-        updateContext(&ZstdCompressContext::resetSession);
+    void resetSession(typename C::WireContext wire_context) {
+        updateContext(wire_context, &ZstdCompressContext::resetSession);
     }
 
-    void clearDictionary() {
-        updateContext(&ZstdCompressContext::clearDictionary);
+    void clearDictionary(typename C::WireContext wire_context) {
+        updateContext(wire_context, &ZstdCompressContext::clearDictionary);
     }
 
-    void setCompressionLevel(int compression_level) {
-        updateContext([this, compression_level]() {
-            return context_->setCompressionLevel(compression_level);
+    void setCompressionLevel(typename C::WireContext wire_context, int compression_level) {
+        updateContext(wire_context, [compression_level](ZstdCompressContext& context) {
+            return context.setCompressionLevel(compression_level);
         });
     }
 
-    void setChecksum(bool enable) {
-        updateContext([this, enable]() {
-            return context_->setChecksum(enable);
+    void setChecksum(typename C::WireContext wire_context, bool enable) {
+        updateContext(wire_context, [enable](ZstdCompressContext& context) {
+            return context.setChecksum(enable);
         });
     }
 
-    void setOriginalSize(uint64_t original_size) {
-        updateContext([this, original_size]() {
-            return context_->setOriginalSize(original_size);
+    void setOriginalSize(typename C::WireContext wire_context, uint64_t original_size) {
+        updateContext(wire_context, [original_size](ZstdCompressContext& context) {
+            return context.setOriginalSize(original_size);
         });
     }
 };
 
-template <BytesBindable B, BytesCallbackBindable C, ErrorThrowable E>
+template <Contextual C, BytesBindable<C> B, BytesCallbackBindable<C> F, ErrorThrowable<C> E>
 class ZstdCompressStreamBinding {
 private:
-    ZstdCodecBinder<B, C, E> binding_;
+    ZstdCodecBinder<C, B, F, E> binding_;
     std::unique_ptr<ZstdCompressStream> stream_;
 
     static ZstdCodecBindingError errorFrom(ZstdCompressStreamError&& e) {
@@ -113,28 +113,28 @@ private:
         };
     }
 
-    void throwError(ZstdCompressStreamError&& e) {
+    void throwError(typename C::WireContext wire_context, ZstdCompressStreamError&& e) {
         const auto error = errorFrom(std::forward<ZstdCompressStreamError&&>(e));
-        binding_.throwError(error);
+        binding_.throwError(wire_context, error);
     }
 
-    ZstdCompressStreamBinding(ZstdCodecBinder<B, C, E>&& binder, std::unique_ptr<ZstdCompressStream>&& stream)
+    ZstdCompressStreamBinding(ZstdCodecBinder<C, B, F, E>&& binder, std::unique_ptr<ZstdCompressStream>&& stream)
             : binding_(binder)
             , stream_(std::forward<std::unique_ptr<ZstdCompressStream>>(stream))
     {
     }
 
 public:
-    using BinderType = ZstdCodecBinder<B, C, E>;
-    using BindingType = ZstdCompressStreamBinding<B, C, E>;
+    using BinderType = ZstdCodecBinder<C, B, F, E>;
+    using BindingType = ZstdCompressStreamBinding<C, B, F, E>;
     using ContextPtr = std::unique_ptr<ZstdCompressContext>;
     using StreamPtr = std::unique_ptr<ZstdCompressStream>;
 
-    static std::unique_ptr<BindingType> create(BinderType binder, ContextPtr context) {
+    static std::unique_ptr<BindingType> create(typename C::WireContext wire_context, BinderType binder, ContextPtr context) {
         auto r = ZstdCompressStream::withContext(std::move(context));
         if (!r) {
             const auto error = errorFrom(std::forward<ZstdCompressStreamError&&>(r.error()));
-            binder.throwError(error);
+            binder.throwError(wire_context, error);
             return nullptr;
         }
 
@@ -142,38 +142,38 @@ public:
         return std::unique_ptr<BindingType>(binding);
     }
 
-    void compress(const typename B::WireType& data, const typename C::WireType& callback) {
-        auto original = binding_.intoBytesVector(data);
-        auto callback_fn = binding_.intoBytesCallbackFn(callback);
+    void compress(typename C::WireContext wire_context, const typename B::WireType& data, const typename F::WireType& callback) {
+        auto original = binding_.intoBytesVector(wire_context, data);
+        auto callback_fn = binding_.intoBytesCallbackFn(wire_context, callback);
         auto result = stream_->compress(original, callback_fn);
         if (!result) {
-            throwError(std::forward<ZstdCompressStreamError>(result.error()));
+            throwError(wire_context, std::forward<ZstdCompressStreamError>(result.error()));
             return;
         }
     }
 
-    void flush(const typename C::WireType& callback) {
-        auto callback_fn = binding_.intoBytesCallbackFn(callback);
+    void flush(typename C::WireContext wire_context, const typename F::WireType& callback) {
+        auto callback_fn = binding_.intoBytesCallbackFn(wire_context, callback);
         auto result = stream_->flush(callback_fn);
         if (!result) {
-            throwError(std::forward<ZstdCompressStreamError>(result.error()));
+            throwError(wire_context, std::forward<ZstdCompressStreamError>(result.error()));
             return;
         }
     }
 
-    void complete(const typename C::WireType& callback) {
-        auto callback_fn = binding_.intoBytesCallbackFn(callback);
+    void complete(typename C::WireContext wire_context, const typename F::WireType& callback) {
+        auto callback_fn = binding_.intoBytesCallbackFn(wire_context, callback);
         auto result = stream_->complete(callback_fn);
         if (!result) {
-            throwError(std::forward<ZstdCompressStreamError>(result.error()));
+            throwError(wire_context, std::forward<ZstdCompressStreamError>(result.error()));
             return;
         }
     }
 
-    void close() {
+    void close(typename C::WireContext wire_context) {
         auto result = stream_->close();
         if (!result) {
-            throwError(std::forward<ZstdCompressStreamError>(result.error()));
+            throwError(wire_context, std::forward<ZstdCompressStreamError>(result.error()));
             return;
         }
     }

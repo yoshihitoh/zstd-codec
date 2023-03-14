@@ -16,6 +16,7 @@ function(SET_CMAKEJS_PROPERTIES)
         set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup" PARENT_SCOPE)
 endfunction(SET_CMAKEJS_PROPERTIES)
 
+
 if (NOT CMAKE_JS_VERSION)
         set_cmakejs_properties()
 endif ()
@@ -24,15 +25,27 @@ execute_process(
         COMMAND $ENV{NODE_PREFIX}node -p "require('node-addon-api').include"
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         OUTPUT_VARIABLE NODE_ADDON_API_DIR
-        )
+)
 string(REPLACE "\n" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
 string(REPLACE "\"" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
 
-add_library(zstd-codec-node SHARED "src/binding.cc" ${CMAKE_JS_SRC})
+#execute_process(
+#        COMMAND $ENV{NODE_PREFIX}node -p "require('node-addon-api').include"
+#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#        OUTPUT_VARIABLE NODE_ADDON_API_DIR
+#        )
+#string(REPLACE "\n" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
+#string(REPLACE "\"" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
+
+set(NODE_BIDING_SOURCES "src/binding.h"
+                        "src/binding.cc"
+                        "src/compress.cc")
+
+add_library(zstd-codec-node SHARED  ${CMAKE_JS_SRC} ${NODE_BIDING_SOURCES})
 target_compile_definitions(zstd-codec-node PRIVATE
         -DNAPI_VERSION=3
         -DNAPI_DISABLE_CPP_EXCEPTIONS
         )
 target_include_directories(zstd-codec-node PRIVATE ${CMAKE_JS_INC} ${NODE_ADDON_API_DIR})
-target_link_libraries(zstd-codec-node zstd-codec ${CMAKE_JS_LIB})
+target_link_libraries(zstd-codec-node zstd-codec-core ${CMAKE_JS_LIB})
 set_target_properties(zstd-codec-node PROPERTIES PREFIX "" SUFFIX ".node")

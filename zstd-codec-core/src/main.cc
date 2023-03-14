@@ -20,6 +20,13 @@ using namespace std;
 
 static const size_t kMaxChunkSize = 100 * 1024;
 
+struct NoContext {};
+
+struct SandboxContext {
+    using WireContext = NoContext;
+};
+
+template <Contextual C>
 class VectorBytesBinding {
 public:
     using WireType = vector<uint8_t>;
@@ -27,16 +34,17 @@ public:
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "readability-convert-member-functions-to-static"
-    ValueType fromWireType(const WireType& wire) {
+    ValueType fromWireType(typename C::WireContext, const WireType& wire) {
         return wire;
     }
 
-    WireType intoWireType(const ValueType& value) {
+    WireType intoWireType(typename C::WireContext, const ValueType& value) {
         return value;
     }
 #pragma clang diagnostic pop
 };
 
+template <Contextual C>
 class FnBytesCallbackBinding {
 public:
     using WireType = function<void(const vector<uint8_t>&)>;
@@ -44,7 +52,7 @@ public:
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "readability-convert-member-functions-to-static"
-    ValueType fromWireType(const WireType& wire) {
+    ValueType fromWireType(typename C::WireContext, const WireType& wire) {
         return [wire](const vector<uint8_t>& data) {
             wire(data);
         };
@@ -52,18 +60,27 @@ public:
 #pragma clang diagnostic pop
 };
 
+template <Contextual C>
 struct ThrowErrorBinding {
-    static void throwError(const ZstdCodecBindingError& error) {
+    static void throwError(typename C::WireContext, const ZstdCodecBindingError& error) {
         auto code = error.code ? fmt::format("Some({})", *error.code) : "None";
         auto message = fmt::format("ZstdCodecBindingError. code={}, message={}", code, error.message);
         throw std::runtime_error(message);
     }
 };
 
-using SandboxBinder = ZstdCodecBinder<VectorBytesBinding, FnBytesCallbackBinding, ThrowErrorBinding>;
+using SandboxBinder = ZstdCodecBinder<
+        SandboxContext,
+        VectorBytesBinding<SandboxContext>,
+        FnBytesCallbackBinding<SandboxContext>,
+        ThrowErrorBinding<SandboxContext>
+>;
 
 SandboxBinder sandboxBinder() {
-    return SandboxBinder((VectorBytesBinding()), FnBytesCallbackBinding(), ThrowErrorBinding());
+    return SandboxBinder(
+            (VectorBytesBinding<SandboxContext>()),
+            FnBytesCallbackBinding<SandboxContext>(),
+            ThrowErrorBinding<SandboxContext>());
 }
 
 static vector<uint8_t> readFile(const char* path) {
@@ -144,13 +161,24 @@ static Result compress(const vector<uint8_t>& data) {
 }
 
 static Result compressWithBindings(const vector<uint8_t>& data) {
-    using CompressContextBinding = ZstdCompressContextBinding<VectorBytesBinding, FnBytesCallbackBinding, ThrowErrorBinding>;
-    using CompressStreamBinding = ZstdCompressStreamBinding<VectorBytesBinding, FnBytesCallbackBinding, ThrowErrorBinding>;
+    using CompressContextBinding = ZstdCompressContextBinding<
+            SandboxContext,
+            VectorBytesBinding<SandboxContext>,
+            FnBytesCallbackBinding<SandboxContext>,
+            ThrowErrorBinding<SandboxContext>
+            >;
 
-    auto context = CompressContextBinding ::create(sandboxBinder());
-    context->setOriginalSize(data.size());
+    using CompressStreamBinding = ZstdCompressStreamBinding<
+            SandboxContext,
+            VectorBytesBinding<SandboxContext>,
+            FnBytesCallbackBinding<SandboxContext>,
+            ThrowErrorBinding<SandboxContext>
+            >;
 
-    auto s = CompressStreamBinding ::create(sandboxBinder(), context->takeContext());
+    auto context = CompressContextBinding ::create({}, sandboxBinder());
+    context->setOriginalSize({}, data.size());
+
+    auto s = CompressStreamBinding ::create({}, sandboxBinder(), context->takeContext());
 
     size_t i = 0;
     std::vector<uint8_t> buff;
@@ -168,7 +196,7 @@ static Result compressWithBindings(const vector<uint8_t>& data) {
         copy(it, it + take, back_inserter(buff));
         i += take;
 
-        s->compress(buff, [take, &output](const std::vector<::uint8_t>& compressed) {
+        s->compress({}, buff, [take, &output](const std::vector<::uint8_t>& compressed) {
             cout << "[compress]: " << take << "B → " << compressed.size() << "B."
                  << " output.size(): " << output.size() << " → " << output.size() + compressed.size()
                  << endl;
@@ -176,14 +204,14 @@ static Result compressWithBindings(const vector<uint8_t>& data) {
         });
     }
 
-    s->complete([&output](const std::vector<::uint8_t>& compressed) {
+    s->complete({}, [&output](const std::vector<::uint8_t>& compressed) {
         cout << "[complete(end)]: flush remaining data " << compressed.size() << "B."
              << " output.size(): " << output.size() << " → " << output.size() + compressed.size()
              << endl;
         output.insert(output.end(), begin(compressed), end(compressed));
     });
 
-    s->close();
+    s->close({});
     return output;
 }
 
@@ -252,11 +280,21 @@ static tl::expected<vector<uint8_t>, string> decompress(const vector<uint8_t>& d
 }
 
 static tl::expected<vector<uint8_t>, string> decompressWithBindings(const vector<uint8_t>& data) {
-    using ContextBinding = ZstdDecompressContextBinding<VectorBytesBinding, FnBytesCallbackBinding, ThrowErrorBinding>;
-    using StreamBinding = ZstdDecompressStreamBinding<VectorBytesBinding, FnBytesCallbackBinding, ThrowErrorBinding>;
+    using ContextBinding = ZstdDecompressContextBinding<
+            SandboxContext,
+            VectorBytesBinding<SandboxContext>,
+            FnBytesCallbackBinding<SandboxContext>,
+            ThrowErrorBinding<SandboxContext>
+            >;
+    using StreamBinding = ZstdDecompressStreamBinding<
+            SandboxContext,
+            VectorBytesBinding<SandboxContext>,
+            FnBytesCallbackBinding<SandboxContext>,
+            ThrowErrorBinding<SandboxContext>
+            >;
 
-    auto context = ContextBinding ::create(sandboxBinder());
-    auto s = StreamBinding ::create(sandboxBinder(), context->takeContext());
+    auto context = ContextBinding ::create({}, sandboxBinder());
+    auto s = StreamBinding ::create({}, sandboxBinder(), context->takeContext());
 
     size_t i = 0;
     std::vector<uint8_t> buff;
@@ -277,14 +315,14 @@ static tl::expected<vector<uint8_t>, string> decompressWithBindings(const vector
         copy(it, it + take, back_inserter(buff));
         i += take;
 
-        s->decompress(buff, [take, &output](const std::vector<::uint8_t>& decompressed) {
+        s->decompress({}, buff, [take, &output](const std::vector<::uint8_t>& decompressed) {
             cout << "[decompress]: " << take << "B → " << decompressed.size() << "B."
                  << " output.size(): " << output.size() << " → " << output.size() + decompressed.size()
                  << endl;
             output.insert(output.end(), begin(decompressed), end(decompressed));
         });
     }
-    s->close();
+    s->close({});
     return output;
 }
 
@@ -307,9 +345,9 @@ static tl::expected<void, string> decompressFile(const char* src_path, Handler&&
 }
 
 static void testBinder() {
-    ZstdCodecBinder<VectorBytesBinding, FnBytesCallbackBinding, ThrowErrorBinding> b((VectorBytesBinding()), FnBytesCallbackBinding(), ThrowErrorBinding());
-    auto xs = b.intoBytesVector(std::vector<uint8_t>{1,2,3});
-    auto fn = b.intoBytesCallbackFn([](const vector<uint8_t>& data) {
+    SandboxBinder b = sandboxBinder();
+    auto xs = b.intoBytesVector({}, std::vector<uint8_t>{1,2,3});
+    auto fn = b.intoBytesCallbackFn({}, [](const vector<uint8_t>& data) {
         cout << "[callback]: [";
         auto first = true;
         for (const auto x : data) {
@@ -326,7 +364,7 @@ static void testBinder() {
 
     ZstdCodecBindingError e {123, "TEST ERROR MESSAGE"};
     try {
-        b.throwError(e);
+        b.throwError({}, e);
     }
     catch (const std::runtime_error& e) {
         cout << "## caught runtime error: " << e.what() << endl;
@@ -334,12 +372,12 @@ static void testBinder() {
 }
 
 int main(int argc, char** argv) {
-    compressFile("./build/zstd-codec/libzstd-codec.a", compress);
-    decompressFile("./build/zstd-codec/libzstd-codec.a.zstd", decompress);
+    compressFile("./build/zstd-codec-core/libzstd-codec-core.a", compress);
+    decompressFile("./build/zstd-codec-core/libzstd-codec-core.a.zstd", decompress);
 
     testBinder();
-    compressFile("./build/zstd-codec/libzstd-codec.a", compressWithBindings);
-    decompressFile("./build/zstd-codec/libzstd-codec.a.zstd", decompressWithBindings);
+    compressFile("./build/zstd-codec-core/libzstd-codec-core.a", compressWithBindings);
+    decompressFile("./build/zstd-codec-core/libzstd-codec-core.a.zstd", decompressWithBindings);
 
     return 0;
 }
