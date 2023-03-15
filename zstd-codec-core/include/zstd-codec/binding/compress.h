@@ -15,8 +15,6 @@ private:
     ZstdCodecBinder<C, B, F, E> binding_;
     std::unique_ptr<ZstdCompressContext> context_;
 
-    typedef ZstdCompressContextResult<void> (ZstdCompressContext::*ContextAction)();
-
     static ZstdCodecBindingError errorFrom(ZstdCompressContextError&& e) {
         return ZstdCodecBindingError {
                 e.code,
@@ -39,6 +37,8 @@ public:
     using BinderType = ZstdCodecBinder<C, B, F, E>;
     using BindingType = ZstdCompressContextBinding<C, B, F, E>;
     using ContextPtr = std::unique_ptr<ZstdCompressContext>;
+
+    typedef ZstdCompressContextResult<void> (ZstdCompressContext::*ContextAction)();
 
     static std::unique_ptr<BindingType> create(typename C::WireContext wire_context, BinderType binder) {
         auto r = ZstdCompressContext::create();
@@ -71,32 +71,6 @@ public:
     std::unique_ptr<ZstdCompressContext> takeContext() {
         assert(context_ != nullptr && "cannot update empty context.");
         return std::unique_ptr<ZstdCompressContext>(context_.release());
-    }
-
-    void resetSession(typename C::WireContext wire_context) {
-        updateContext(wire_context, &ZstdCompressContext::resetSession);
-    }
-
-    void clearDictionary(typename C::WireContext wire_context) {
-        updateContext(wire_context, &ZstdCompressContext::clearDictionary);
-    }
-
-    void setCompressionLevel(typename C::WireContext wire_context, int compression_level) {
-        updateContext(wire_context, [compression_level](ZstdCompressContext& context) {
-            return context.setCompressionLevel(compression_level);
-        });
-    }
-
-    void setChecksum(typename C::WireContext wire_context, bool enable) {
-        updateContext(wire_context, [enable](ZstdCompressContext& context) {
-            return context.setChecksum(enable);
-        });
-    }
-
-    void setOriginalSize(typename C::WireContext wire_context, uint64_t original_size) {
-        updateContext(wire_context, [original_size](ZstdCompressContext& context) {
-            return context.setOriginalSize(original_size);
-        });
     }
 };
 

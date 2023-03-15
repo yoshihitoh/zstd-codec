@@ -6,12 +6,16 @@
 
 #include "binding.h"
 #include "compress.h"
+#include "decompress.h"
 
-Napi::Object initialize(Napi::Env env, Napi::Object exports)
-{
-    // ラッパークラスを初期化する
+Napi::Object initialize(Napi::Env env, Napi::Object exports) {
+    // compression
     NodeZstdCompressContextBinding::initialize(env, exports);
     NodeZstdCompressStreamBinding::initialize(env, exports);
+
+    // decompression
+    NodeZstdDecompressContextBinding::initialize(env, exports);
+    NodeZstdDecompressStreamBinding::initialize(env, exports);
 
     // エクスポート結果を返却
     return exports;

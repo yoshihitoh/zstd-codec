@@ -7,6 +7,7 @@
 #include "fmt/format.h"
 
 #include "zstd-codec/binding/bindable.h"
+#include "zstd-codec/binding/binder.h"
 #include "zstd-codec/binding/error.h"
 
 struct NapiEnvContext {
@@ -74,3 +75,10 @@ struct NodeErrorThrowable<NodeContext> {
         Napi::Error::New(env, message.c_str()).ThrowAsJavaScriptException();
     }
 };
+
+using NodeBinder = ZstdCodecBinder<
+        NodeContext,
+        NodeBytesBinding<NodeContext>,
+        NodeBytesCallbackBinding<NodeContext>,
+        NodeErrorThrowable<NodeContext>
+>;

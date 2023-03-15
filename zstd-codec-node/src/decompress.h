@@ -4,12 +4,12 @@
 
 #include "napi.h"
 
-#include "zstd-codec/binding/compress.h"
+#include "zstd-codec/binding/decompress.h"
 #include "binding.h"
 
-class NodeZstdCompressContextBinding : public Napi::ObjectWrap<NodeZstdCompressContextBinding> {
+class NodeZstdDecompressContextBinding : public Napi::ObjectWrap<NodeZstdDecompressContextBinding> {
 private:
-    using Binding = ZstdCompressContextBinding<
+    using Binding = ZstdDecompressContextBinding<
             NodeContext,
             NodeBytesBinding<NodeContext>,
             NodeBytesCallbackBinding<NodeContext>,
@@ -21,24 +21,21 @@ private:
 
 public:
     // inner methods
-    std::unique_ptr<ZstdCompressContext> takeContext();
+    std::unique_ptr<ZstdDecompressContext> takeContext();
 
 public:
     // binding methods
     static Napi::Object initialize(Napi::Env env, Napi::Object exports);
 
-    explicit NodeZstdCompressContextBinding(const Napi::CallbackInfo& info);
+    explicit NodeZstdDecompressContextBinding(const Napi::CallbackInfo& info);
 
     Napi::Value resetSession(const Napi::CallbackInfo& info);
     Napi::Value clearDictionary(const Napi::CallbackInfo& info);
-    Napi::Value setCompressionLevel(const Napi::CallbackInfo& info);
-    Napi::Value setChecksum(const Napi::CallbackInfo& info);
-    Napi::Value setOriginalSize(const Napi::CallbackInfo& info);
 };
 
-class NodeZstdCompressStreamBinding : public Napi::ObjectWrap<NodeZstdCompressStreamBinding> {
+class NodeZstdDecompressStreamBinding : public Napi::ObjectWrap<NodeZstdDecompressStreamBinding> {
 private:
-    using Binding = ZstdCompressStreamBinding<
+    using Binding = ZstdDecompressStreamBinding<
             NodeContext,
             NodeBytesBinding<NodeContext>,
             NodeBytesCallbackBinding<NodeContext>,
@@ -48,16 +45,14 @@ private:
     static Napi::FunctionReference s_constructor;
     std::unique_ptr<Binding> binding_;
 
-    static std::unique_ptr<ZstdCompressContext> takeContextFrom(const Napi::CallbackInfo& info);
+    static std::unique_ptr<ZstdDecompressContext> takeContextFrom(const Napi::CallbackInfo& info);
 
 public:
     static Napi::Object initialize(Napi::Env env, Napi::Object exports);
 
-    explicit NodeZstdCompressStreamBinding(const Napi::CallbackInfo& info);
+    explicit NodeZstdDecompressStreamBinding(const Napi::CallbackInfo& info);
 
-    void compress(const Napi::CallbackInfo& info);
-    void flush(const Napi::CallbackInfo& info);
-    void complete(const Napi::CallbackInfo& info);
+    void decompress(const Napi::CallbackInfo& info);
     void close(const Napi::CallbackInfo& info);
 };
 

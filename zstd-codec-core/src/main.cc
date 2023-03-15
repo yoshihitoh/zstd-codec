@@ -176,7 +176,9 @@ static Result compressWithBindings(const vector<uint8_t>& data) {
             >;
 
     auto context = CompressContextBinding ::create({}, sandboxBinder());
-    context->setOriginalSize({}, data.size());
+    context->updateContext({}, [&data](ZstdCompressContext& c) {
+        return c.setOriginalSize(data.size());
+    });
 
     auto s = CompressStreamBinding ::create({}, sandboxBinder(), context->takeContext());
 

@@ -39,7 +39,11 @@ string(REPLACE "\"" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
 
 set(NODE_BIDING_SOURCES "src/binding.h"
                         "src/binding.cc"
-                        "src/compress.cc")
+                        "src/compress.h"
+                        "src/compress.cc"
+                        "src/decompress.h"
+                        "src/decompress.cc"
+        )
 
 add_library(zstd-codec-node SHARED  ${CMAKE_JS_SRC} ${NODE_BIDING_SOURCES})
 target_compile_definitions(zstd-codec-node PRIVATE

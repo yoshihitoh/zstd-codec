@@ -33,28 +33,11 @@ private:
     {
     }
 
-    typedef ZstdDecompressContextResult<void> (ZstdDecompressContext::*ContextAction)();
-
-    void updateContext(typename C::WireContext wire_context, ContextAction action) {
-        assert(context_ != nullptr && "cannot update empty context.");
-        auto result = ((*context_).*action)();
-        if (!result) {
-            throwError(wire_context, std::forward<ZstdDecompressContextError>(result.error()));
-        }
-    }
-
-    void updateContext(typename C::WireContext wire_context, std::function<ZstdDecompressContextResult<void>()>&& action) {
-        assert(context_ != nullptr && "cannot update empty context.");
-        auto result = action();
-        if (!result) {
-            throwError(wire_context, std::forward<ZstdDecompressContextError>(result.error()));
-        }
-    }
-
 public:
     using BinderType = ZstdCodecBinder<C, B, F, E>;
     using BindingType = ZstdDecompressContextBinding<C, B, F, E>;
     using ContextPtr = std::unique_ptr<ZstdDecompressContext>;
+    typedef ZstdDecompressContextResult<void> (ZstdDecompressContext::*ContextAction)();
 
     static std::unique_ptr<BindingType> create(typename C::WireContext wire_context, BinderType binder) {
         auto r = ZstdDecompressContext::create();
@@ -73,12 +56,20 @@ public:
         return std::unique_ptr<ZstdDecompressContext>(context_.release());
     }
 
-    void resetSession(typename C::WireContext wire_context) {
-        updateContext(wire_context, &ZstdDecompressContext::resetSession);
+    void updateContext(typename C::WireContext wire_context, ContextAction action) {
+        assert(context_ != nullptr && "cannot update empty context.");
+        auto result = ((*context_).*action)();
+        if (!result) {
+            throwError(wire_context, std::forward<ZstdDecompressContextError>(result.error()));
+        }
     }
 
-    void clearDictionary(typename C::WireContext wire_context) {
-        updateContext(wire_context, &ZstdDecompressContext::clearDictionary);
+    void updateContext(typename C::WireContext wire_context, std::function<ZstdDecompressContextResult<void>(ZstdDecompressContext&)>&& action) {
+        assert(context_ != nullptr && "cannot update empty context.");
+        auto result = action(*context_);
+        if (!result) {
+            throwError(wire_context, std::forward<ZstdDecompressContextError>(result.error()));
+        }
     }
 };
 
