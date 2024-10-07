@@ -1,0 +1,15 @@
+[submodule "libs/external/zstd"]
+	path = libs/external/zstd
+	url = https://github.com/facebook/zstd
+[submodule "libs/external/fmt"]
+	path = libs/external/fmt
+	url = https://github.com/fmtlib/fmt
+[submodule "libs/external/expected"]
+	path = libs/external/expected
+	url = https://github.com/TartanLlama/expected
+[submodule "libs/external/optional"]
+	path = libs/external/optional
+	url = https://github.com/TartanLlama/optional
+[submodule "libs/external/googletest"]
+	path = libs/external/googletest
+	url = https://github.com/google/googletest
