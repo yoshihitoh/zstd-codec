@@ -1,0 +1,1 @@
+set(ZSTD_CODEC_VERSION "0.2.0")

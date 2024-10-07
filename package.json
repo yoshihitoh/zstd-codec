@@ -1,0 +1,35 @@
+{
+  "name": "zstd-codec-nodejs",
+  "version": "0.2.0",
+  "description": "[Zstandard](http://facebook.github.io/zstd/) codec for Node.js and Web, powered by Emscripten.",
+  "homepage": "https://github.com/yoshihitoh/zstd-codec#readme",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "install": "cmake-js compile --parallel $(num-cpus-cli)",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "binary": {
+    "napi_versions": [
+      9
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yoshihitoh/zstd-codec.git"
+  },
+  "author": "yoshihitoh",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yoshihitoh/zstd-codec/issues"
+  },
+  "dependencies": {
+    "node-addon-api": "*"
+  },
+  "devDependencies": {
+    "cmake-js": "^7.3.0"
+  }
+}
